@@ -1,4 +1,4 @@
-const API = "http://localhost:3001";
+const API = window.location.origin;
 let token = localStorage.getItem("admin_token");
 let currentTab = "overview";
 let confirmCb = null;

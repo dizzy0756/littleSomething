@@ -57,6 +57,9 @@ app.get("/terms.html", (req, res) => {
 app.get("/privacy.html", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "privacy.html"));
 });
+app.get("/admin.html", (req, res) => {
+  res.sendFile(path.join(FRONTEND_DIR, "admin.html"));
+});
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
