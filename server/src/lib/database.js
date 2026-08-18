@@ -1,9 +1,7 @@
 const Database = require("better-sqlite3");
 const path = require("path");
 
-const isVercel = process.env.VERCEL === "1";
-const dbPath = isVercel ? "/tmp/app.db" : path.join(__dirname, "../../../data/app.db");
-const db = new Database(dbPath);
+const db = new Database(path.join(__dirname, "../../../data/app.db"));
 
 function init() {
   db.pragma("journal_mode = WAL");
