@@ -1,5 +1,6 @@
 # Secrets — never commit these
 .env
+server/.env
 
 # Dependencies
 server/node_modules/

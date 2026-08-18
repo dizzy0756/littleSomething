@@ -9,6 +9,38 @@ if (!fs.existsSync(dbDir)) {
 }
 const db = new Database(dbPath);
 
+function runMigrations() {
+  const columns = db.pragma("table_info(payments)").map(function (col) { return col.name; });
+
+  if (!columns.includes("creation_id")) {
+    db.exec("ALTER TABLE payments ADD COLUMN creation_id TEXT");
+  }
+  if (!columns.includes("razorpay_order_id")) {
+    db.exec("ALTER TABLE payments ADD COLUMN razorpay_order_id TEXT");
+  }
+  if (!columns.includes("razorpay_payment_id")) {
+    db.exec("ALTER TABLE payments ADD COLUMN razorpay_payment_id TEXT");
+  }
+  if (!columns.includes("razorpay_signature")) {
+    db.exec("ALTER TABLE payments ADD COLUMN razorpay_signature TEXT");
+  }
+  if (!columns.includes("updated_at")) {
+    db.exec("ALTER TABLE payments ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))");
+  }
+
+  try {
+    db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_razorpay_order ON payments(razorpay_order_id)");
+  } catch (err) {
+    console.warn("Could not create unique index on razorpay_order_id:", err.message);
+  }
+
+  try {
+    db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_razorpay_payment ON payments(razorpay_payment_id)");
+  } catch (err) {
+    console.warn("Could not create unique index on razorpay_payment_id:", err.message);
+  }
+}
+
 function init() {
   db.pragma("journal_mode = WAL");
 
@@ -94,6 +126,7 @@ function init() {
   const idx4 = db.prepare("CREATE INDEX IF NOT EXISTS idx_link_views_link ON link_views(link_id)").run();
   const idx5 = db.prepare("CREATE INDEX IF NOT EXISTS idx_files_user ON files(user_id)").run();
   const idx6 = db.prepare("CREATE INDEX IF NOT EXISTS idx_files_creation ON files(creation_id)").run();
+  runMigrations();
 }
 
 module.exports = { db, init };

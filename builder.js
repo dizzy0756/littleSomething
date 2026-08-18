@@ -788,34 +788,100 @@
         var creationId = creationData.creation.id;
         state.creationId = creationId;
 
-        var linkRes = await apiCall("POST", "/api/links/" + creationId + "/generate", {});
-        if (!linkRes.ok) {
-          var linkErrData = await linkRes.json();
-          throw new Error(linkErrData.error || "Failed to generate link");
+        var orderRes = await apiCall("POST", "/api/payments/create-order", {
+          creation_id: creationId,
+        });
+        if (!orderRes.ok) {
+          var orderErr = await orderRes.json();
+          if (orderErr.already_paid && orderErr.link) {
+            var publicUrl = window.location.origin + "/s/" + orderErr.link.slug;
+            window.location.href = "/success.html?slug=" + orderErr.link.slug;
+            return;
+          }
+          throw new Error(orderErr.error || "Failed to start payment");
         }
 
-        var linkData = await linkRes.json();
-        var publicUrl = window.location.origin + "/s/" + linkData.link.slug;
+        var orderData = await orderRes.json();
 
-        btn.textContent = "Link ready!";
-        setTimeout(function () { btn.textContent = original; }, 3000);
+        await loadRazorpayScript();
 
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(publicUrl);
-        }
+        var userEmail = getUserEmail();
+        var rzp = new Razorpay({
+          key: orderData.key_id,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: "LittleSomething",
+          description: "Your private surprise link",
+          prefill: { email: userEmail },
+          method: { upi: true },
+          theme: { color: "#f3698b" },
+          handler: async function (response) {
+            btn.textContent = "Verifying...";
+            try {
+              var verifyRes = await fetch(API_BASE + "/api/payments/verify", {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              });
+              var verifyData = await verifyRes.json();
+              if (verifyRes.ok && verifyData.success && verifyData.link) {
+                window.location.href = "/success.html?slug=" + verifyData.link.slug;
+              } else {
+                throw new Error(verifyData.error || "Payment verification failed");
+              }
+            } catch (err) {
+              console.error(err);
+              alert(err.message || "Something went wrong during verification");
+              btn.textContent = original;
+              btn.disabled = false;
+            }
+          },
+          ondismiss: function () {
+            btn.textContent = original;
+            btn.disabled = false;
+          },
+        });
 
-        var confirmed = confirm("Your link is ready!\n\n" + publicUrl + "\n\nIt has been copied to your clipboard. Share it with your special someone! It will expire in 7 days.");
-        if (confirmed) {
-          window.open(publicUrl, "_blank");
-        }
+        rzp.open();
       } catch (err) {
         console.error(err);
         alert(err.message || "Something went wrong");
         btn.textContent = original;
-      } finally {
         btn.disabled = false;
       }
     });
+  }
+
+  function loadRazorpayScript() {
+    return new Promise(function (resolve, reject) {
+      if (window.Razorpay) {
+        resolve();
+        return;
+      }
+      var script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  function getUserEmail() {
+    var token = authToken;
+    if (!token) return "";
+    var parts = token.split(".");
+    if (parts.length !== 3) return "";
+    try {
+      var payload = parts[1];
+      var decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+      return decoded.email || "";
+    } catch (e) {
+      return "";
+    }
   }
 
   /* ---------- init ---------- */

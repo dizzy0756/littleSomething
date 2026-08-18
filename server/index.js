@@ -3,6 +3,16 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+if (!process.env.RAZORPAY_KEY_ID) {
+  throw new Error("RAZORPAY_KEY_ID environment variable is required");
+}
+if (!process.env.RAZORPAY_KEY_SECRET) {
+  throw new Error("RAZORPAY_KEY_SECRET environment variable is required");
+}
+
 const allowedOrigins = [process.env.FRONTEND_URL, "http://localhost:3001", "http://localhost:3000"].filter(Boolean);
 
 const path = require("path");
@@ -16,6 +26,7 @@ const dashboardRoutes = require("./src/routes/dashboard");
 const adminRoutes = require("./src/routes/admin");
 const analyticsRoutes = require("./src/routes/analytics");
 const siteRoutes = require("./src/routes/site");
+const paymentRoutes = require("./src/routes/payments");
 
 const db = require("./src/lib/database");
 
@@ -25,6 +36,8 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: allowedOrigins.length > 0 ? allowedOrigins : true }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }), paymentRoutes.webhookRouter);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/templates", express.static(path.join(__dirname, "../templates")));
@@ -68,11 +81,12 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/creations", creationRoutes);
 app.use("/api/upload", uploadRoutes);
-app.use("/api/links", linkRoutes);
+app.use("/api/links", linkRoutes.router);
 app.use("/api/templates", templateRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/payments", paymentRoutes.router);
 app.use("/s", siteRoutes);
 
 app.use((err, req, res, next) => {

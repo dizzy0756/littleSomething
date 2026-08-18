@@ -8,6 +8,46 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
+function generateLinkForCreation(creationId, userId, expiryDays) {
+  expiryDays = expiryDays || parseInt(process.env.PRIVATE_LINK_EXPIRY_DAYS || "7", 10);
+  const existing = db.prepare(
+    "SELECT * FROM public_links WHERE creation_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1"
+  ).get(creationId, userId);
+
+  if (existing && new Date(existing.expires_at) > new Date()) {
+    return { link: existing, created: false };
+  }
+
+  for (var attempt = 0; attempt < 5; attempt++) {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expiryDays);
+    const slug = crypto.randomBytes(7).toString("base64url").slice(0, 10);
+
+    const link = {
+      id: generateId(),
+      creation_id: creationId,
+      user_id: userId,
+      slug,
+      expires_at: expiresAt.toISOString(),
+      views: 0,
+    };
+
+    try {
+      db.prepare("INSERT INTO public_links (id, creation_id, user_id, slug, expires_at, views) VALUES (?, ?, ?, ?, ?, ?)")
+        .run(link.id, link.creation_id, link.user_id, link.slug, link.expires_at, link.views);
+      return { link: link, created: true };
+    } catch (err) {
+      if (err.code === "SQLITE_CONSTRAINT" && err.message.indexOf("slug") !== -1) {
+        console.warn("Slug collision, retrying...", slug);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw new Error("Failed to generate unique slug after multiple attempts");
+}
+
 // Generate or return existing active link for a creation.
 // If a non-expired link already exists, return it unchanged (same URL).
 // If expired or none, create a fresh one.
@@ -18,33 +58,8 @@ router.post("/:creationId/generate", (req, res) => {
       return res.status(404).json({ error: "Creation not found" });
     }
 
-    const existing = db.prepare(
-      "SELECT * FROM public_links WHERE creation_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1"
-    ).get(creation.id, req.user.id);
-
-    if (existing && new Date(existing.expires_at) > new Date()) {
-      // Return the still-active link — same URL every time
-      return res.status(200).json({ link: existing });
-    }
-
-    // No valid link — create one
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-    const slug = crypto.randomBytes(7).toString("base64url").slice(0, 10);
-
-    const link = {
-      id: generateId(),
-      creation_id: creation.id,
-      user_id: req.user.id,
-      slug,
-      expires_at: expiresAt.toISOString(),
-      views: 0,
-    };
-
-    db.prepare("INSERT INTO public_links (id, creation_id, user_id, slug, expires_at, views) VALUES (?, ?, ?, ?, ?, ?)")
-      .run(link.id, link.creation_id, link.user_id, link.slug, link.expires_at, link.views);
-
-    res.status(201).json({ link });
+    const result = generateLinkForCreation(req.params.creationId, req.user.id);
+    res.status(result.created ? 201 : 200).json({ link: result.link });
   } catch (err) {
     console.error("Generate link error:", err);
     res.status(500).json({ error: "Failed to generate link" });
@@ -76,4 +91,4 @@ router.delete("/:id", (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = { router, generateLinkForCreation };

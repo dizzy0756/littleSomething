@@ -12,8 +12,8 @@ router.get("/stats", (req, res) => {
     const creationCount = db.prepare("SELECT COUNT(*) as count FROM creations").get().count;
     const linkCount = db.prepare("SELECT COUNT(*) as count FROM public_links").get().count;
     const totalViews = db.prepare("SELECT COALESCE(SUM(views), 0) as total FROM public_links").get().total;
-    const paymentCount = db.prepare("SELECT COUNT(*) as count FROM payments WHERE status = 'succeeded'").get().count;
-    const revenue = db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'succeeded'").get().total;
+    const paymentCount = db.prepare("SELECT COUNT(*) as count FROM payments WHERE status IN ('succeeded', 'paid')").get().count;
+    const revenue = db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status IN ('succeeded', 'paid')").get().total;
 
     res.json({
       stats: {
