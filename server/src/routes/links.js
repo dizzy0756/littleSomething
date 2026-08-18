@@ -8,10 +8,10 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-function generateLinkForCreation(creationId, userId, expiryDays) {
+async function generateLinkForCreation(creationId, userId, expiryDays) {
   expiryDays = expiryDays || parseInt(process.env.PRIVATE_LINK_EXPIRY_DAYS || "7", 10);
-  const existing = db.prepare(
-    "SELECT * FROM public_links WHERE creation_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1"
+  const existing = await db.prepare(
+    "SELECT * FROM public_links WHERE creation_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1"
   ).get(creationId, userId);
 
   if (existing && new Date(existing.expires_at) > new Date()) {
@@ -33,11 +33,11 @@ function generateLinkForCreation(creationId, userId, expiryDays) {
     };
 
     try {
-      db.prepare("INSERT INTO public_links (id, creation_id, user_id, slug, expires_at, views) VALUES (?, ?, ?, ?, ?, ?)")
+      await db.prepare("INSERT INTO public_links (id, creation_id, user_id, slug, expires_at, views) VALUES ($1, $2, $3, $4, $5, $6)")
         .run(link.id, link.creation_id, link.user_id, link.slug, link.expires_at, link.views);
       return { link: link, created: true };
     } catch (err) {
-      if (err.code === "SQLITE_CONSTRAINT" && err.message.indexOf("slug") !== -1) {
+      if (err.code === "23505" && err.message.toLowerCase().indexOf("slug") !== -1) {
         console.warn("Slug collision, retrying...", slug);
         continue;
       }
@@ -48,17 +48,14 @@ function generateLinkForCreation(creationId, userId, expiryDays) {
   throw new Error("Failed to generate unique slug after multiple attempts");
 }
 
-// Generate or return existing active link for a creation.
-// If a non-expired link already exists, return it unchanged (same URL).
-// If expired or none, create a fresh one.
-router.post("/:creationId/generate", (req, res) => {
+router.post("/:creationId/generate", async (req, res) => {
   try {
-    const creation = db.prepare("SELECT * FROM creations WHERE id = ? AND user_id = ?").get(req.params.creationId, req.user.id);
+    const creation = await db.prepare("SELECT * FROM creations WHERE id = $1 AND user_id = $2").get(req.params.creationId, req.user.id);
     if (!creation) {
       return res.status(404).json({ error: "Creation not found" });
     }
 
-    const result = generateLinkForCreation(req.params.creationId, req.user.id);
+    const result = await generateLinkForCreation(req.params.creationId, req.user.id);
     res.status(result.created ? 201 : 200).json({ link: result.link });
   } catch (err) {
     console.error("Generate link error:", err);
@@ -66,10 +63,10 @@ router.post("/:creationId/generate", (req, res) => {
   }
 });
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const links = db.prepare(
-      "SELECT id, creation_id, slug, expires_at, views, created_at FROM public_links WHERE user_id = ? ORDER BY created_at DESC"
+    const links = await db.prepare(
+      "SELECT id, creation_id, slug, expires_at, views, created_at FROM public_links WHERE user_id = $1 ORDER BY created_at DESC"
     ).all(req.user.id);
     res.json({ links });
   } catch (err) {
@@ -78,10 +75,10 @@ router.get("/", (req, res) => {
   }
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const result = db.prepare("DELETE FROM public_links WHERE id = ? AND user_id = ?").run(req.params.id, req.user.id);
-    if (result.changes === 0) {
+    const result = await db.prepare("DELETE FROM public_links WHERE id = $1 AND user_id = $2").run(req.params.id, req.user.id);
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: "Link not found" });
     }
     res.json({ success: true });

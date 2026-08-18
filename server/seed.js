@@ -11,24 +11,29 @@ if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
   process.exit(1);
 }
 
-function seed() {
-  const byEmail = db.prepare("SELECT id FROM users WHERE email = ?").get(ADMIN_EMAIL);
-  const anyAdmin = db.prepare("SELECT id FROM users WHERE role = 'admin'").get();
+async function seed() {
+  const byEmail = await db.prepare("SELECT id FROM users WHERE email = $1").get(ADMIN_EMAIL);
+  const anyAdmin = await db.prepare("SELECT id FROM users WHERE role = 'admin'").get();
 
   if (byEmail) {
-    db.prepare("UPDATE users SET password_hash = ?, name = ? WHERE id = ?")
+    await db.prepare("UPDATE users SET password_hash = $1, name = $2 WHERE id = $3")
       .run(hashPassword(ADMIN_PASSWORD), ADMIN_NAME, byEmail.id);
     console.log("Admin credentials updated for", ADMIN_EMAIL);
   } else if (anyAdmin) {
-    db.prepare("UPDATE users SET email = ?, password_hash = ?, name = ? WHERE id = ?")
+    await db.prepare("UPDATE users SET email = $1, password_hash = $2, name = $3 WHERE id = $4")
       .run(ADMIN_EMAIL, hashPassword(ADMIN_PASSWORD), ADMIN_NAME, anyAdmin.id);
     console.log("Admin migrated to", ADMIN_EMAIL);
   } else {
     const id = generateId();
-    db.prepare("INSERT INTO users (id, email, password_hash, name, role) VALUES (?, ?, ?, ?, ?)")
+    await db.prepare("INSERT INTO users (id, email, password_hash, name, role) VALUES ($1, $2, $3, $4, $5)")
       .run(id, ADMIN_EMAIL, hashPassword(ADMIN_PASSWORD), ADMIN_NAME, "admin");
     console.log("Admin created:", ADMIN_EMAIL);
   }
+
+  await db.pool.end();
 }
 
-seed();
+seed().catch((err) => {
+  console.error("Seed error:", err);
+  process.exit(1);
+});

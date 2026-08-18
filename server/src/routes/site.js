@@ -55,9 +55,9 @@ function notFoundPage() {
 </body></html>`;
 }
 
-router.get("/:slug", (req, res) => {
+router.get("/:slug", async (req, res) => {
   try {
-    const link = db.prepare("SELECT * FROM public_links WHERE slug = ?").get(req.params.slug);
+    const link = await db.prepare("SELECT * FROM public_links WHERE slug = $1").get(req.params.slug);
     if (!link) {
       return res.status(404).send(notFoundPage());
     }
@@ -66,14 +66,14 @@ router.get("/:slug", (req, res) => {
       return res.status(410).send(expiredPage());
     }
 
-    db.prepare("UPDATE public_links SET views = views + 1 WHERE id = ?").run(link.id);
+    await db.prepare("UPDATE public_links SET views = views + 1 WHERE id = $1").run(link.id);
 
     const viewId = generateId();
-    db.prepare(
-      "INSERT INTO link_views (id, link_id, ip_address, user_agent) VALUES (?, ?, ?, ?)"
+    await db.prepare(
+      "INSERT INTO link_views (id, link_id, ip_address, user_agent) VALUES ($1, $2, $3, $4)"
     ).run(viewId, link.id, req.ip || "", req.get("user-agent") || "");
 
-    const creation = db.prepare("SELECT template_id, data_json FROM creations WHERE id = ?").get(link.creation_id);
+    const creation = await db.prepare("SELECT template_id, data_json FROM creations WHERE id = $1").get(link.creation_id);
     if (!creation) {
       return res.status(404).send(notFoundPage());
     }
@@ -81,7 +81,6 @@ router.get("/:slug", (req, res) => {
     const data = JSON.parse(creation.data_json);
     const templateId = creation.template_id || data.template_id;
 
-    // Ensure the template is loaded before trying to render it
     loadTemplate(templateId);
 
     const html = buildSiteHTML(templateId, data, {

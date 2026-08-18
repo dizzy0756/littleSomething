@@ -5,11 +5,6 @@ server/.env
 # Dependencies
 server/node_modules/
 
-# Database (runtime data, not source)
-data/app.db
-data/app.db-shm
-data/app.db-wal
-
 # Uploaded user files
 server/uploads/*
 !server/uploads/.gitkeep

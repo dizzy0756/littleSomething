@@ -42,18 +42,18 @@ router.post("/create-order", async (req, res) => {
       return res.status(400).json({ error: "creation_id is required" });
     }
 
-    const creation = db.prepare("SELECT * FROM creations WHERE id = ? AND user_id = ?").get(creation_id, req.user.id);
+    const creation = await db.prepare("SELECT * FROM creations WHERE id = $1 AND user_id = $2").get(creation_id, req.user.id);
     if (!creation) {
       return res.status(404).json({ error: "Creation not found" });
     }
 
-    const existingPaid = db.prepare(
-      "SELECT * FROM payments WHERE creation_id = ? AND status = 'paid' ORDER BY created_at DESC LIMIT 1"
+    const existingPaid = await db.prepare(
+      "SELECT * FROM payments WHERE creation_id = $1 AND status = 'paid' ORDER BY created_at DESC LIMIT 1"
     ).get(creation_id);
 
     if (existingPaid) {
-      const existingLink = db.prepare(
-        "SELECT * FROM public_links WHERE creation_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1"
+      const existingLink = await db.prepare(
+        "SELECT * FROM public_links WHERE creation_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1"
       ).get(creation_id, req.user.id);
 
       if (existingLink) {
@@ -83,8 +83,8 @@ router.post("/create-order", async (req, res) => {
       updated_at: new Date().toISOString(),
     };
 
-    db.prepare(
-      "INSERT INTO payments (id, user_id, creation_id, amount, currency, status, razorpay_order_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    await db.prepare(
+      "INSERT INTO payments (id, user_id, creation_id, amount, currency, status, razorpay_order_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
     ).run(
       payment.id,
       payment.user_id,
@@ -122,7 +122,7 @@ router.post("/verify", async (req, res) => {
       return res.status(400).json({ error: "Invalid payment signature" });
     }
 
-    const payment = db.prepare("SELECT * FROM payments WHERE razorpay_order_id = ?").get(razorpay_order_id);
+    const payment = await db.prepare("SELECT * FROM payments WHERE razorpay_order_id = $1").get(razorpay_order_id);
     if (!payment) {
       return res.status(404).json({ error: "Payment not found" });
     }
@@ -132,8 +132,8 @@ router.post("/verify", async (req, res) => {
     }
 
     if (payment.status === "paid") {
-      const existingLink = db.prepare(
-        "SELECT * FROM public_links WHERE creation_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1"
+      const existingLink = await db.prepare(
+        "SELECT * FROM public_links WHERE creation_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1"
       ).get(payment.creation_id, req.user.id);
 
       if (existingLink) {
@@ -144,16 +144,16 @@ router.post("/verify", async (req, res) => {
       }
     }
 
-    db.prepare(
-      "UPDATE payments SET status = 'paid', razorpay_payment_id = ?, razorpay_signature = ?, updated_at = datetime('now') WHERE id = ?"
+    await db.prepare(
+      "UPDATE payments SET status = 'paid', razorpay_payment_id = $1, razorpay_signature = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3"
     ).run(razorpay_payment_id, razorpay_signature, payment.id);
 
-    const creation = db.prepare("SELECT * FROM creations WHERE id = ?").get(payment.creation_id);
+    const creation = await db.prepare("SELECT * FROM creations WHERE id = $1").get(payment.creation_id);
     if (!creation) {
       return res.status(404).json({ error: "Creation not found" });
     }
 
-    const linkResult = generateLinkForCreation(payment.creation_id, payment.user_id, getLinkExpiryDays());
+    const linkResult = await generateLinkForCreation(payment.creation_id, payment.user_id, getLinkExpiryDays());
     const link = linkResult.link;
 
     const publicUrl = (req.protocol + "://" + req.get("host")) + "/s/" + link.slug;
@@ -171,7 +171,7 @@ router.post("/verify", async (req, res) => {
   }
 });
 
-webhookRouter.post("/", (req, res) => {
+webhookRouter.post("/", async (req, res) => {
   try {
     const signature = req.headers["x-razorpay-signature"];
     if (!signature) {
@@ -195,7 +195,7 @@ webhookRouter.post("/", (req, res) => {
     const orderId = payload.order_id;
     const paymentId = payload.id;
 
-    const payment = db.prepare("SELECT * FROM payments WHERE razorpay_order_id = ?").get(orderId);
+    const payment = await db.prepare("SELECT * FROM payments WHERE razorpay_order_id = $1").get(orderId);
     if (!payment) {
       return res.status(200).send("Payment not found");
     }
@@ -211,28 +211,28 @@ webhookRouter.post("/", (req, res) => {
       newStatus = "failed";
     }
 
-    db.prepare(
-      "UPDATE payments SET status = ?, razorpay_payment_id = ?, updated_at = datetime('now') WHERE id = ?"
+    await db.prepare(
+      "UPDATE payments SET status = $1, razorpay_payment_id = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3"
     ).run(newStatus, paymentId, payment.id);
 
     if (newStatus === "paid") {
-      const creation = db.prepare("SELECT * FROM creations WHERE id = ?").get(payment.creation_id);
+      const creation = await db.prepare("SELECT * FROM creations WHERE id = $1").get(payment.creation_id);
       if (creation) {
-        const existingLink = db.prepare(
-          "SELECT * FROM public_links WHERE creation_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1"
+        const existingLink = await db.prepare(
+          "SELECT * FROM public_links WHERE creation_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1"
         ).get(payment.creation_id, payment.user_id);
 
         let link;
         if (existingLink && new Date(existingLink.expires_at) > new Date()) {
           link = existingLink;
         } else {
-          var linkResult = generateLinkForCreation(payment.creation_id, payment.user_id, getLinkExpiryDays());
+          var linkResult = await generateLinkForCreation(payment.creation_id, payment.user_id, getLinkExpiryDays());
           link = linkResult.link;
         }
 
         const publicUrl = "https://" + req.get("host") + "/s/" + link.slug;
         const { sendPaymentConfirmation } = require("../lib/email");
-        const user = db.prepare("SELECT email FROM users WHERE id = ?").get(payment.user_id);
+        const user = await db.prepare("SELECT email FROM users WHERE id = $1").get(payment.user_id);
         if (user) {
           sendPaymentConfirmation(user.email, payment.amount, publicUrl, link.expires_at);
         }

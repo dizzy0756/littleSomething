@@ -7,10 +7,10 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const creations = db.prepare(
-      "SELECT id, user_id, template_id, name, created_at, updated_at FROM creations WHERE user_id = ? ORDER BY updated_at DESC"
+    const creations = await db.prepare(
+      "SELECT id, user_id, template_id, name, created_at, updated_at FROM creations WHERE user_id = $1 ORDER BY updated_at DESC"
     ).all(req.user.id);
     res.json({ creations });
   } catch (err) {
@@ -19,9 +19,9 @@ router.get("/", (req, res) => {
   }
 });
 
-router.get("/:id", (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
-    const creation = db.prepare("SELECT * FROM creations WHERE id = ? AND user_id = ?").get(req.params.id, req.user.id);
+    const creation = await db.prepare("SELECT * FROM creations WHERE id = $1 AND user_id = $2").get(req.params.id, req.user.id);
     if (!creation) {
       return res.status(404).json({ error: "Creation not found" });
     }
@@ -32,7 +32,7 @@ router.get("/:id", (req, res) => {
   }
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { template_id, name, data } = req.body;
     if (!template_id || !data) {
@@ -52,7 +52,7 @@ router.post("/", (req, res) => {
       data_json,
     };
 
-    db.prepare("INSERT INTO creations (id, user_id, template_id, name, data_json) VALUES (?, ?, ?, ?, ?)")
+    await db.prepare("INSERT INTO creations (id, user_id, template_id, name, data_json) VALUES ($1, $2, $3, $4, $5)")
       .run(creation.id, creation.user_id, creation.template_id, creation.name, creation.data_json);
 
     res.status(201).json({ creation: { ...creation, data } });
@@ -62,10 +62,10 @@ router.post("/", (req, res) => {
   }
 });
 
-router.put("/:id", (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
     const { name, data, template_id } = req.body;
-    const existing = db.prepare("SELECT id FROM creations WHERE id = ? AND user_id = ?").get(req.params.id, req.user.id);
+    const existing = await db.prepare("SELECT id FROM creations WHERE id = $1 AND user_id = $2").get(req.params.id, req.user.id);
     if (!existing) {
       return res.status(404).json({ error: "Creation not found" });
     }
@@ -73,15 +73,15 @@ router.put("/:id", (req, res) => {
     const updates = [];
     const values = [];
 
-    if (name !== undefined) { updates.push("name = ?"); values.push(name); }
-    if (data !== undefined) { updates.push("data_json = ?"); values.push(JSON.stringify(data)); }
-    if (template_id !== undefined) { updates.push("template_id = ?"); values.push(template_id); }
-    updates.push("updated_at = datetime('now')");
+    if (name !== undefined) { updates.push("name = $1"); values.push(name); }
+    if (data !== undefined) { updates.push("data_json = $2"); values.push(JSON.stringify(data)); }
+    if (template_id !== undefined) { updates.push("template_id = $3"); values.push(template_id); }
+    updates.push("updated_at = CURRENT_TIMESTAMP");
     values.push(req.params.id);
 
-    db.prepare("UPDATE creations SET " + updates.join(", ") + " WHERE id = ?").run(...values);
+    await db.prepare("UPDATE creations SET " + updates.join(", ") + " WHERE id = $" + values.length).run(...values);
 
-    const updated = db.prepare("SELECT * FROM creations WHERE id = ?").get(req.params.id);
+    const updated = await db.prepare("SELECT * FROM creations WHERE id = $1").get(req.params.id);
     res.json({ creation: { ...updated, data: JSON.parse(updated.data_json) } });
   } catch (err) {
     console.error("Update creation error:", err);
@@ -89,10 +89,10 @@ router.put("/:id", (req, res) => {
   }
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const result = db.prepare("DELETE FROM creations WHERE id = ? AND user_id = ?").run(req.params.id, req.user.id);
-    if (result.changes === 0) {
+    const result = await db.prepare("DELETE FROM creations WHERE id = $1 AND user_id = $2").run(req.params.id, req.user.id);
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: "Creation not found" });
     }
     res.json({ success: true });

@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.post("/file", upload.single("file"), (req, res) => {
+router.post("/file", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
@@ -31,8 +31,8 @@ router.post("/file", upload.single("file"), (req, res) => {
       path: "/uploads/" + (req.file.mimetype.startsWith("audio") ? "audio" : "images") + "/" + req.file.filename,
     };
 
-    db.prepare(
-      "INSERT INTO files (id, user_id, creation_id, filename, original_name, mime_type, size, path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    await db.prepare(
+      "INSERT INTO files (id, user_id, creation_id, filename, original_name, mime_type, size, path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
     ).run(
       fileRecord.id,
       fileRecord.user_id,
@@ -51,27 +51,27 @@ router.post("/file", upload.single("file"), (req, res) => {
   }
 });
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { creation_id } = req.query;
-    let query = "SELECT * FROM files WHERE user_id = ?";
+    let query = "SELECT * FROM files WHERE user_id = $1";
     const params = [req.user.id];
     if (creation_id) {
-      query += " AND creation_id = ?";
+      query += " AND creation_id = $2";
       params.push(creation_id);
     }
     query += " ORDER BY created_at DESC";
-    const files = db.prepare(query).all(...params);
-    res.json({ files });
+    const files = await db.query(query, params);
+    res.json({ files: files.rows });
   } catch (err) {
     console.error("List files error:", err);
     res.status(500).json({ error: "Failed to fetch files" });
   }
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const file = db.prepare("SELECT * FROM files WHERE id = ? AND user_id = ?").get(req.params.id, req.user.id);
+    const file = await db.prepare("SELECT * FROM files WHERE id = $1 AND user_id = $2").get(req.params.id, req.user.id);
     if (!file) {
       return res.status(404).json({ error: "File not found" });
     }
@@ -83,7 +83,7 @@ router.delete("/:id", (req, res) => {
       fs.unlinkSync(fullPath);
     }
 
-    db.prepare("DELETE FROM files WHERE id = ?").run(req.params.id);
+    await db.prepare("DELETE FROM files WHERE id = $1").run(req.params.id);
     res.json({ success: true });
   } catch (err) {
     console.error("Delete file error:", err);

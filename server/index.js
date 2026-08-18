@@ -12,6 +12,9 @@ if (!process.env.RAZORPAY_KEY_ID) {
 if (!process.env.RAZORPAY_KEY_SECRET) {
   throw new Error("RAZORPAY_KEY_SECRET environment variable is required");
 }
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
 
 const allowedOrigins = [process.env.FRONTEND_URL, "http://localhost:3001", "http://localhost:3000"].filter(Boolean);
 
@@ -94,7 +97,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal server error", message: err.message });
 });
 
-db.init();
-app.listen(PORT, () => {
-  console.log(`Little Something API running on http://localhost:${PORT}`);
+async function start() {
+  await db.init();
+  app.listen(PORT, () => {
+    console.log(`Little Something API running on http://localhost:${PORT}`);
+  });
+}
+
+start().catch(err => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });

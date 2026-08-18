@@ -25,7 +25,7 @@ function validatePassword(password) {
   return null;
 }
 
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   try {
     const { email, password, name } = req.body;
     if (!email || !password) {
@@ -46,7 +46,7 @@ router.post("/register", (req, res) => {
       return res.status(400).json({ error: passwordError });
     }
 
-    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+    const existing = await db.prepare("SELECT id FROM users WHERE email = $1").get(email);
     if (existing) {
       return res.status(409).json({ error: "Email already registered" });
     }
@@ -59,8 +59,7 @@ router.post("/register", (req, res) => {
       role: "customer",
     };
 
-    db.prepare("INSERT INTO users (id, email, password_hash, name, role) VALUES (?, ?, ?, ?, ?)")
-      .run(user.id, user.email, user.password_hash, user.name, user.role);
+    await db.prepare("INSERT INTO users (id, email, password_hash, name, role) VALUES ($1, $2, $3, $4, $5)").run(user.id, user.email, user.password_hash, user.name, user.role);
 
     const token = generateToken(user);
     res.status(201).json({
@@ -73,7 +72,7 @@ router.post("/register", (req, res) => {
   }
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -86,7 +85,7 @@ router.post("/login", (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email.toLowerCase());
+    const user = await db.prepare("SELECT * FROM users WHERE email = $1").get(email.toLowerCase());
     if (!user || !comparePassword(password, user.password_hash)) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
@@ -102,7 +101,7 @@ router.post("/login", (req, res) => {
   }
 });
 
-router.get("/me", (req, res) => {
+router.get("/me", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -114,7 +113,7 @@ router.get("/me", (req, res) => {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
 
-    const user = db.prepare("SELECT id, email, name, role, created_at FROM users WHERE id = ?").get(decoded.id);
+    const user = await db.prepare("SELECT id, email, name, role, created_at FROM users WHERE id = $1").get(decoded.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }

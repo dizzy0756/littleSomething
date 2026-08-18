@@ -3,10 +3,10 @@
 ## 1. Project Understanding Summary
 
 The project is a vanilla JS website builder with:
-- **Backend**: Express.js + better-sqlite3, flat route structure in `server/src/routes/`
+- **Backend**: Express.js + PostgreSQL (`pg`), flat route structure in `server/src/routes/`
 - **Frontend**: Static HTML/CSS/JS served by Express, no build step
 - **Auth**: JWT Bearer tokens, bcrypt passwords
-- **Database**: SQLite at `data/app.db`, `CREATE TABLE IF NOT EXISTS` pattern
+- **Database**: PostgreSQL via `pg` connection pool, `DATABASE_URL` env var
 - **Builder**: `builder.html` + `builder.js` — user customizes template, then clicks "Generate Link"
 - **Current "Generate Link" flow** (builder.js:753-819): saves creation → generates public link → copies URL → opens in new tab. **No payment gating.**
 - **Checkout**: `checkout.html` is a mock with no JS logic
