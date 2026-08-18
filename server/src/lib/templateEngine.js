@@ -13,6 +13,23 @@ function esc(str) {
     .replace(/'/g, "&#39;");
 }
 
+function normalizeAssetPaths(data) {
+  if (typeof data === "string") {
+    return data.replace(/^assets\//, "/assets/");
+  }
+  if (Array.isArray(data)) {
+    return data.map(normalizeAssetPaths);
+  }
+  if (data && typeof data === "object") {
+    var out = {};
+    Object.keys(data).forEach(function (key) {
+      out[key] = normalizeAssetPaths(data[key]);
+    });
+    return out;
+  }
+  return data;
+}
+
 function escLines(str) {
   return esc(str).split("\n").map((l) => l.trimEnd()).join("<br>");
 }
@@ -96,8 +113,9 @@ function buildSiteHTML(templateId, data, opts) {
     ? "<style>" + opts.inlineCSS + "</style>"
     : '<link rel="stylesheet" href="' + esc(opts.cssHref || "/templates/" + templateId + "/template.css") + '">';
 
-  const bodyHTML = template.renderBody ? template.renderBody(data) : "<p>Template has no renderBody.</p>";
-  const interactionJS = template.getInteractions ? template.getInteractions(data) : "";
+  const normalizedData = normalizeAssetPaths(data);
+  const bodyHTML = template.renderBody ? template.renderBody(normalizedData) : "<p>Template has no renderBody.</p>";
+  const interactionJS = template.getInteractions ? template.getInteractions(normalizedData) : "";
   const title = esc(data.siteTitle || "A Little Something");
 
   return "<!DOCTYPE html>" +

@@ -478,12 +478,12 @@
     GIF_LIBRARY.forEach(function (g) {
       var img = document.createElement("img");
       img.className = "gif-thumb";
-      img.src = "assets/gifs/" + g.file;
+      img.src = "/assets/gifs/" + g.file;
       img.alt = g.alt;
-      img.dataset.src = "assets/gifs/" + g.file;
+      img.dataset.src = "/assets/gifs/" + g.file;
       img.title = g.alt;
       img.addEventListener("click", function () {
-        var val = { src: "assets/gifs/" + g.file, alt: g.alt };
+        var val = { src: "/assets/gifs/" + g.file, alt: g.alt };
         if (typeof fieldOrIndex === "string") {
           state.data[fieldOrIndex] = val;
         } else {
@@ -609,7 +609,7 @@
     var lib = GIF_LIBRARY[state.data.memeBoxes.length % GIF_LIBRARY.length];
     state.data.memeBoxes.push({
       caption: "You when...",
-      gif: { src: "assets/gifs/" + lib.file, alt: lib.alt }
+      gif: { src: "/assets/gifs/" + lib.file, alt: lib.alt }
     });
     renderMemeEditors();
     scheduleRender();

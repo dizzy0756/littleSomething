@@ -60,7 +60,7 @@
     "eyebrow": "a little something for you",
     "heading": "Hiii {name} 💗",
     "subtext": "I made a little something for you...\nBut you have to click around to discover it hehe 👉👈",
-    "gifOpening": { "src": "assets/gifs/happy-cat.gif", "alt": "Cute waiting cat" },
+    "gifOpening": { "src": "/assets/gifs/happy-cat.gif", "alt": "Cute waiting cat" },
     "startButtonLabel": "Start the surprise 💗",
     "appreciationHeading": "Okay... now let me tell you something 🥺💗",
     "appreciationLines": [
@@ -70,34 +70,34 @@
       "I don't always say it enough, but I really appreciate having you in my life."
     ],
     "appreciationEmphLine": "You're genuinely one of my favourite people in this entire world. 💗",
-    "gifAppreciation": { "src": "assets/gifs/dudu-pat-bubu-dudu.gif", "alt": "Cute love cat" },
+    "gifAppreciation": { "src": "/assets/gifs/dudu-pat-bubu-dudu.gif", "alt": "Cute love cat" },
     "appreciationOutro": "Okay okay... enough wholesome stuff 😭",
     "continueButtonLabel": "There's more... 👀 →",
     "confessionPrompt": "I have something very important to say...",
     "confessionButtonLabel": "Click me 🥺",
     "loveText": "LOVE YOU {NAME} 💗",
-    "gifConfession": { "src": "assets/gifs/friday.gif", "alt": "Proposing cat" },
+    "gifConfession": { "src": "/assets/gifs/friday.gif", "alt": "Proposing cat" },
     "confessionOutro": "Okay, I'm done being cheesy... probably.",
     "continueButtonLabel2": "Continue → 😂",
     "burstMessages": ["sooooo much 💗", "hehe", "mwah 😚", "my {name} 🥺"],
     "memesHeading": "Okay enough romance. Time for nonsense. 😂",
     "memeBoxes": [
-      { "caption": "You when I go out with my friends:", "gif": { "src": "assets/gifs/bubu-angry-bubu-fierce.gif", "alt": "Angry cat" } },
-      { "caption": "You when i wake up late:", "gif": { "src": "assets/gifs/that's-what-i-prefer-cute-angry-cat.gif", "alt": "Angry cat" } },
-      { "caption": "You for no reason:", "gif": { "src": "assets/gifs/angry-cat.gif", "alt": "Angry cat" } }
+      { "caption": "You when I go out with my friends:", "gif": { "src": "/assets/gifs/bubu-angry-bubu-fierce.gif", "alt": "Angry cat" } },
+      { "caption": "You when i wake up late:", "gif": { "src": "/assets/gifs/that's-what-i-prefer-cute-angry-cat.gif", "alt": "Angry cat" } },
+      { "caption": "You for no reason:", "gif": { "src": "/assets/gifs/angry-cat.gif", "alt": "Angry cat" } }
     ],
     "laughButtonLabel": "Press this if you agree 😂",
     "laughRevealInitial": "I KNEW IT 😭",
     "laughRevealFollowup": "I KNEW IT 😭 — don't worry, I won't tell anyone.",
     "lastThingButtonLabel": "One last thing... 💗",
-    "finalPhoto": { "src": "assets/our-photo.jpg", "alt": "Our photo" },
-    "finalSong": { "src": "assets/our-song.mp3" },
+    "finalPhoto": { "src": "/assets/our-photo.jpg", "alt": "Our photo" },
+    "finalSong": { "src": "/assets/our-song.mp3" },
     "musicButtonLabel": "🎵 Play our song",
     "finalLine0": "And finally...",
     "finalLine1": "I'm really lucky to have you. 💗",
     "finalLine2": "I love you, {name}.",
     "finalLine3": "Always remember that. 🥺💕",
-    "gifFinal": { "src": "assets/gifs/yapapa-yapapa-cat.gif", "alt": "Cute love cat" },
+    "gifFinal": { "src": "/assets/gifs/yapapa-yapapa-cat.gif", "alt": "Cute love cat" },
     "footerText": "Made with way too much love and questionable amounts of coding. 😂💗"
   }
 }
