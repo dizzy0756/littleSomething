@@ -1,14 +1,30 @@
-# Secrets — never commit these
+# ---- Secrets (never commit) ----
 .env
-server/.env
+.env.local
+.env.*.local
+**/.env
+apps/api/.env
+apps/web/.env
 
-# Dependencies
-server/node_modules/
+# ---- Dependencies ----
+node_modules/
+apps/api/node_modules/
+apps/web/node_modules/
+packages/*/node_modules/
 
-# Uploaded user files
-server/uploads/*
-!server/uploads/.gitkeep
+# ---- Build output ----
+apps/web/dist/
+dist/
 
-# OS junk
+# ---- Local uploads / runtime data ----
+apps/api/uploads/
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# ---- OS / editor junk ----
 .DS_Store
 Thumbs.db
+*.log
+.kilo/

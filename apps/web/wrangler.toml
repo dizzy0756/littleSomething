@@ -1,0 +1,11 @@
+name = "little-something-web"
+type = "javascript"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-09-01"
+
+# Public build-time vars (VITE_*) are set in the Cloudflare Pages dashboard
+# under Settings > Environment variables (Production + Preview deployments).
+# They are baked into the static bundle at build time:
+#   VITE_API_BASE_URL     -> https://api.littlesomething.app
+#   VITE_RAZORPAY_KEY_ID  -> Razorpay publishable key (safe in the browser)
+#   VITE_CDN_BASE_URL     -> https://cdn.littlesomething.app  (R2 public URL)

@@ -1,0 +1,20 @@
+{
+  "name": "@little-something/web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare-hosted frontend for Little Something For You",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "vite build && wrangler pages deploy dist"
+  },
+  "dependencies": {
+    "@little-something/shared": "*"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "wrangler": "^3.78.0"
+  }
+}

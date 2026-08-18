@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Little Something</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+  <script src="/src/config.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <span class="logo-dot">💗</span>
+        <div>
+          <h1>Little Something</h1>
+          <p>Admin</p>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="overview">Overview</button>
+        <button class="nav-item" data-tab="users">Users</button>
+        <button class="nav-item" data-tab="creations">Creations</button>
+        <button class="nav-item" data-tab="links">Links</button>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn-ghost" id="logoutBtn">Logout</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn" id="menuToggle" aria-label="Menu">☰</button>
+        <h2 id="pageTitle">Overview</h2>
+        <span id="adminBadge" class="badge">Admin</span>
+      </header>
+
+      <section class="tab-panel active" id="tab-overview">
+        <div class="stats-grid" id="statsGrid"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-users">
+        <div class="table-wrap">
+          <table class="table" id="usersTable">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-creations">
+        <div class="table-wrap">
+          <table class="table" id="creationsTable">
+            <thead><tr><th>Name</th><th>Template</th><th>Owner</th><th>Updated</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-links">
+        <div class="admin-actions" style="margin-bottom:1rem;">
+          <button class="btn-primary" id="generateLinkBtn">Generate Link</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table" id="linksTable">
+            <thead><tr><th>Slug</th><th>Creation</th><th>Owner</th><th>Views</th><th>Expires</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal">
+      <h2>Admin Login</h2>
+      <form id="loginForm">
+        <div class="field">
+          <span>Email</span>
+          <input type="email" id="loginEmail" required />
+        </div>
+        <div class="field">
+          <span>Password</span>
+          <input type="password" id="loginPassword" required />
+        </div>
+        <button class="btn-primary" type="submit" style="margin-top:0.6rem; width:100%;">Login</button>
+      </form>
+      <p class="modal-error" id="loginError" style="display:none;"></p>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="confirmModal" style="display:none;">
+    <div class="modal">
+      <h2 id="confirmTitle">Confirm</h2>
+      <p id="confirmBody">Are you sure?</p>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="confirmCancel">Cancel</button>
+        <button class="btn-primary" id="confirmOk">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
