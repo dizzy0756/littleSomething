@@ -7,10 +7,10 @@ if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
 if (!process.env.RAZORPAY_KEY_ID) {
-  throw new Error("RAZORPAY_KEY_ID environment variable is required");
+  console.warn("RAZORPAY_KEY_ID is not set — payment features will be disabled");
 }
 if (!process.env.RAZORPAY_KEY_SECRET) {
-  throw new Error("RAZORPAY_KEY_SECRET environment variable is required");
+  console.warn("RAZORPAY_KEY_SECRET is not set — payment features will be disabled");
 }
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");

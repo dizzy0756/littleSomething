@@ -37,6 +37,9 @@ function verifyWebhookSignature(body, signature) {
 
 router.post("/create-order", async (req, res) => {
   try {
+    if (!razorpay) {
+      return res.status(503).json({ error: "Payment service is not configured" });
+    }
     const { creation_id } = req.body;
     if (!creation_id) {
       return res.status(400).json({ error: "creation_id is required" });
@@ -112,6 +115,9 @@ router.post("/create-order", async (req, res) => {
 
 router.post("/verify", async (req, res) => {
   try {
+    if (!razorpay) {
+      return res.status(503).json({ error: "Payment service is not configured" });
+    }
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ error: "Missing payment verification fields" });
@@ -173,6 +179,9 @@ router.post("/verify", async (req, res) => {
 
 webhookRouter.post("/", async (req, res) => {
   try {
+    if (!razorpay) {
+      return res.status(503).send("Payment service is not configured");
+    }
     const signature = req.headers["x-razorpay-signature"];
     if (!signature) {
       return res.status(400).send("Missing signature");
