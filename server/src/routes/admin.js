@@ -1,6 +1,7 @@
 const express = require("express");
 const { db } = require("../lib/database");
 const { authMiddleware, adminOnly } = require("../middleware/auth");
+const { generateLinkForCreation } = require("./links");
 
 const router = express.Router();
 
@@ -62,6 +63,26 @@ router.get("/links", async (req, res) => {
   } catch (err) {
     console.error("Admin links error:", err);
     res.status(500).json({ error: "Failed to fetch links" });
+  }
+});
+
+router.post("/links/generate", async (req, res) => {
+  try {
+    const { creation_id, expiry_days } = req.body;
+    if (!creation_id) {
+      return res.status(400).json({ error: "creation_id is required" });
+    }
+
+    const creation = await db.prepare("SELECT * FROM creations WHERE id = $1").get(creation_id);
+    if (!creation) {
+      return res.status(404).json({ error: "Creation not found" });
+    }
+
+    const result = await generateLinkForCreation(creation_id, creation.user_id, expiry_days);
+    res.status(result.created ? 201 : 200).json({ link: result.link });
+  } catch (err) {
+    console.error("Admin generate link error:", err);
+    res.status(500).json({ error: "Failed to generate link" });
   }
 });
 

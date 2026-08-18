@@ -30,13 +30,14 @@ const adminRoutes = require("./src/routes/admin");
 const analyticsRoutes = require("./src/routes/analytics");
 const siteRoutes = require("./src/routes/site");
 const paymentRoutes = require("./src/routes/payments");
+const { adminSessionFromCookie } = require("./src/middleware/auth");
 
 const db = require("./src/lib/database");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: allowedOrigins.length > 0 ? allowedOrigins : true }));
+app.use(cors({ origin: allowedOrigins.length > 0 ? allowedOrigins : true, credentials: true }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
@@ -47,7 +48,14 @@ app.use("/templates", express.static(path.join(__dirname, "../templates")));
 app.use("/assets", express.static(path.join(__dirname, "../assets")));
 
 const FRONTEND_DIR = path.join(__dirname, "..");
-app.use(express.static(FRONTEND_DIR, { index: false }));
+
+app.get("/admin", adminSessionFromCookie, (req, res) => {
+  res.sendFile(path.join(FRONTEND_DIR, "admin.html"));
+});
+
+app.get("/admin.html", (req, res) => {
+  res.redirect(301, "/admin");
+});
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "index.html"));
@@ -73,9 +81,8 @@ app.get("/terms.html", (req, res) => {
 app.get("/privacy.html", (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, "privacy.html"));
 });
-app.get("/admin.html", (req, res) => {
-  res.sendFile(path.join(FRONTEND_DIR, "admin.html"));
-});
+
+app.use(express.static(FRONTEND_DIR, { index: false }));
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

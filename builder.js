@@ -722,6 +722,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
+          credentials: "include",
         });
         var data = await res.json();
         if (!res.ok) {
@@ -877,11 +878,96 @@
     if (parts.length !== 3) return "";
     try {
       var payload = parts[1];
-      var decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+      payload = payload.replace(/-/g, "+").replace(/_/g, "/");
+      while (payload.length % 4) payload += "=";
+      var decoded = JSON.parse(atob(payload));
       return decoded.email || "";
     } catch (e) {
       return "";
     }
+  }
+
+  function getUserRole() {
+    var token = authToken;
+    if (!token) return "";
+    var parts = token.split(".");
+    if (parts.length !== 3) return "";
+    try {
+      var payload = parts[1];
+      payload = payload.replace(/-/g, "+").replace(/_/g, "/");
+      while (payload.length % 4) payload += "=";
+      var decoded = JSON.parse(atob(payload));
+      return decoded.role || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function updateAdminUI() {
+    var bypassBtn = $("adminBypassBtn");
+    if (!bypassBtn) return;
+    if (getUserRole() === "admin") {
+      bypassBtn.style.display = "inline-block";
+    } else {
+      bypassBtn.style.display = "none";
+    }
+  }
+
+  async function bindAdminBypass() {
+    $("adminBypassBtn").addEventListener("click", async function () {
+      var btn = $("adminBypassBtn");
+      var original = btn.textContent;
+      btn.textContent = "Working...";
+      btn.disabled = true;
+
+      try {
+        if (!authToken) {
+          btn.textContent = original;
+          btn.disabled = false;
+          showAuthModal();
+          return;
+        }
+
+        var creationRes;
+        if (state.creationId) {
+          creationRes = await apiCall("PUT", "/api/creations/" + state.creationId, {
+            name: state.data.recipientName || "Untitled",
+            data: state.data,
+          });
+        } else {
+          creationRes = await apiCall("POST", "/api/creations", {
+            template_id: state.templateId,
+            name: state.data.recipientName || "Untitled",
+            data: state.data,
+          });
+        }
+
+        if (!creationRes.ok) {
+          var errData = await creationRes.json();
+          throw new Error(errData.error || "Failed to save creation");
+        }
+
+        var creationData = await creationRes.json();
+        var creationId = creationData.creation.id;
+
+        var linkRes = await apiCall("POST", "/api/admin/links/generate", {
+          creation_id: creationId,
+        });
+
+        if (!linkRes.ok) {
+          var linkErr = await linkRes.json();
+          throw new Error(linkErr.error || "Failed to generate link");
+        }
+
+        var linkData = await linkRes.json();
+        window.location.href = "/success.html?slug=" + linkData.link.slug;
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "Something went wrong");
+        btn.textContent = original;
+        btn.disabled = false;
+      }
+    });
   }
 
   /* ---------- init ---------- */
@@ -912,7 +998,9 @@
     bindReset();
     bindAuthModal();
     updateAuthUI();
+    updateAdminUI();
     bindGenerateLink();
+    bindAdminBypass();
 
     renderPreview();
     saveDraft();

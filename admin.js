@@ -17,7 +17,7 @@ function hideLogin() {
 function api(path, opts = {}) {
   const headers = { "Content-Type": "application/json", ...opts.headers };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  return fetch(`${API}${path}`, { ...opts, headers })
+  return fetch(`${API}${path}`, { ...opts, headers, credentials: "include" })
     .then(async (r) => {
       if (r.status === 401 || r.status === 403) {
         token = null;
@@ -210,6 +210,24 @@ function init() {
     token = null;
     localStorage.removeItem("admin_token");
     showLogin();
+  });
+
+  $("#generateLinkBtn").addEventListener("click", async () => {
+    const creationId = prompt("Enter creation ID to generate a link for:");
+    if (!creationId) return;
+    const expiryDays = prompt("Link expiry in days (default 7):", "7");
+    const days = expiryDays ? parseInt(expiryDays, 10) : 7;
+
+    try {
+      const data = await api("/api/admin/links/generate", {
+        method: "POST",
+        body: JSON.stringify({ creation_id: creationId, expiry_days: days }),
+      });
+      alert(`Link generated: ${window.location.origin}/s/${data.link.slug}`);
+      if (currentTab === "links") loadLinks();
+    } catch (err) {
+      alert(err.message);
+    }
   });
 
   $$(".nav-item").forEach((btn) => {

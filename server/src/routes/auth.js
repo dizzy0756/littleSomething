@@ -91,10 +91,17 @@ router.post("/login", async (req, res) => {
     }
 
     const token = generateToken(user);
-    res.json({
+    
+    const response = {
       token,
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
-    });
+    };
+
+    if (user.role === "admin") {
+      res.setHeader("Set-Cookie", `admin_session=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
+    }
+
+    res.json(response);
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Login failed" });
