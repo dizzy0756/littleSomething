@@ -35,7 +35,7 @@
       .replace(/'/g, "&#39;");
   }
 
-  var API_BASE = "/api";
+  var API_BASE = "";
   var authToken = localStorage.getItem("littleSomething_token") || "";
 
   function setAuthToken(token) {
