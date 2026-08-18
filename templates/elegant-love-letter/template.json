@@ -1,0 +1,54 @@
+{
+  "id": "elegant-love-letter",
+  "name": "Elegant Love Letter",
+  "description": "A slower, more intimate five-screen love letter experience.",
+  "pages": [
+    { "id": "opening", "label": "Opening" },
+    { "id": "notes", "label": "Things I Adore" },
+    { "id": "burst", "label": "Heart Reveal" },
+    { "id": "jokes", "label": "Inside Jokes" },
+    { "id": "finale", "label": "Finale" }
+  ],
+  "fields": [
+    { "id": "recipientName", "label": "Their name", "type": "text", "required": true, "maxLength": 40, "page": "global" },
+    { "id": "siteTitle", "label": "Browser tab title", "type": "text", "maxLength": 60, "page": "global" },
+    { "id": "eyebrow", "label": "Eyebrow label", "type": "text", "maxLength": 60, "page": "opening" },
+    { "id": "heading", "label": "Heading", "type": "text", "maxLength": 80, "page": "opening" },
+    { "id": "subtext", "label": "Subtext", "type": "textarea", "maxLength": 200, "page": "opening" },
+    { "id": "notes", "label": "Things I adore", "type": "array", "itemType": "text", "minItems": 2, "maxItems": 5, "page": "notes" },
+    { "id": "burstHeading", "label": "Burst heading", "type": "text", "maxLength": 60, "page": "burst" },
+    { "id": "burstRevealText", "label": "Reveal text", "type": "text", "maxLength": 100, "page": "burst" },
+    { "id": "jokeCards", "label": "Inside jokes", "type": "array", "itemType": "text", "minItems": 2, "maxItems": 4, "page": "jokes" },
+    { "id": "finalPhoto", "label": "Your photo", "type": "image", "page": "finale" },
+    { "id": "finalSong", "label": "Your song", "type": "audio", "page": "finale" },
+    { "id": "footerText", "label": "Footer note", "type": "text", "maxLength": 120, "page": "finale" }
+  ],
+  "themes": [
+    { "id": "blush", "name": "Blush", "dots": ["#f8d7e3", "#f5a3b8", "#ee7a9d"] },
+    { "id": "lavender", "name": "Lavender", "dots": ["#e2d9ff", "#c4b5fd", "#a78bfa"] }
+  ],
+  "defaultTheme": "blush",
+  "defaultData": {
+    "theme": "blush",
+    "siteTitle": "A Little Something For You",
+    "recipientName": "Buu",
+    "eyebrow": "A LittleSomething for you",
+    "heading": "Hey, {{recipientName}}.<br>I made this <em>just for you.</em>",
+    "subtext": "There are a few things I've been meaning to say — the kind worth opening slowly.",
+    "notes": [
+      "You make ordinary Tuesdays feel like tiny adventures.",
+      "Your laugh is still my favourite sound in a crowded room.",
+      "You remember the little things. That matters more than you know."
+    ],
+    "burstHeading": "One more thing?",
+    "burstRevealText": "I am so lucky to love you.",
+    "jokeCards": [
+      "That time we said 'we'll just get chai' and came home three hours later.",
+      "The dramatic way you say 'I'm fine' when you are very much not fine.",
+      "Our highly debated, completely incorrect theory about pigeons."
+    ],
+    "finalPhoto": { "src": "", "alt": "Our favourite photo" },
+    "finalSong": { "src": "", "name": "" },
+    "footerText": "Made with a whole lot of love."
+  }
+}

@@ -1,0 +1,18 @@
+# Secrets — never commit these
+.env
+
+# Dependencies
+server/node_modules/
+
+# Database (runtime data, not source)
+data/app.db
+data/app.db-shm
+data/app.db-wal
+
+# Uploaded user files
+server/uploads/*
+!server/uploads/.gitkeep
+
+# OS junk
+.DS_Store
+Thumbs.db

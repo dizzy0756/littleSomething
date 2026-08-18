@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Builder — Little Something For You</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="builder.css">
+</head>
+<body>
+
+<header class="builder-header">
+  <div class="builder-header-title">
+    <span class="logo-dot">💗</span>
+    <div>
+      <h1>Little Something For You</h1>
+      <p id="templateName">Choose a template to get started</p>
+    </div>
+  </div>
+  <div class="builder-header-actions">
+    <span id="saveStatus" class="save-status">Draft saved</span>
+    <span id="authArea"></span>
+    <button class="btn-ghost" id="resetBtn" type="button">Reset to example</button>
+    <button class="btn-ghost" id="fullPreviewBtn" type="button">Full-screen preview</button>
+    <button class="btn-primary" id="downloadBtn" type="button">Generate Link</button>
+  </div>
+</header>
+
+<main class="builder-main">
+  <section class="panel-pane">
+    <div class="global-fields" id="globalFields">
+      <!-- Template select and global fields injected by builder.js -->
+    </div>
+
+    <nav class="tabs" id="tabs"></nav>
+
+    <div class="tab-panels" id="tabPanels"></div>
+  </section>
+
+  <section class="preview-pane">
+    <div class="preview-frame-wrap">
+      <iframe id="previewFrame" title="Live preview"></iframe>
+    </div>
+  </section>
+</main>
+
+<div class="mobile-preview-toggle" id="mobilePreviewToggle">Preview 👀</div>
+
+<div class="modal-overlay" id="authModal" style="display:none;">
+  <div class="modal">
+    <h2 id="authModalTitle">Login</h2>
+    <form id="authForm">
+      <div class="field">
+        <span>Email</span>
+        <input type="email" id="authEmail" required />
+      </div>
+      <div class="field">
+        <span>Password</span>
+        <input type="password" id="authPassword" required />
+      </div>
+      <div class="field" id="authNameField" style="display:none;">
+        <span>Name</span>
+        <input type="text" id="authName" />
+      </div>
+      <button class="btn-primary" type="submit" style="margin-top:0.6rem; width:100%;">Submit</button>
+    </form>
+    <button class="btn-ghost" id="authToggle" type="button" style="margin-top:0.6rem; width:100%;">Need an account? Register</button>
+    <button class="icon-btn" id="authClose" type="button" style="position:absolute; top:0.8rem; right:0.8rem;">✕</button>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script src="builder.js"></script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+.support {
+    max-width: 1120px;
+    margin: auto;
+    padding: 85px 28px
+}
+
+.support>h1 {
+    font-size: clamp(3rem, 6vw, 5rem);
+    margin-bottom: 18px
+}
+
+.template-grid {
+    margin-top: 52px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px
+}
+
+.template-card {
+    min-height: 220px;
+    padding: 28px;
+    border-radius: 15px;
+    color: #3e2840;
+    text-decoration: none;
+    font-size: 2rem;
+    transition: .2s
+}
+
+.template-card:hover {
+    transform: translateY(-5px)
+}
+
+.template-card h2 {
+    font-size: 1.7rem;
+    margin: 0 0 6px
+}
+
+.template-card p {
+    font-size: 0.85rem;
+    margin: 0;
+    color: #5c4a5e
+}
+
+.template-card.rose {
+    background: linear-gradient(135deg, #ffe4ea, #ffd7e6)
+}
+
+.template-card.lilac {
+    background: linear-gradient(135deg, #e8e0ff, #f6f3ff)
+}
+
+.template-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.2rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.preview-link {
+    color: #725d70;
+    text-decoration: underline;
+}
+
+.use-link {
+    color: #d76a89;
+}
+
+
+.story {
+    max-width: 850px
+}
+
+.story-steps {
+    margin: 50px 0
+}
+
+.story-steps article {
+    display: flex;
+    gap: 30px;
+    padding: 25px 0;
+    border-top: 1px solid #e7dade
+}
+
+.story-steps article:last-child {
+    border-bottom: 1px solid #e7dade
+}
+
+.story-steps b {
+    font: 700 1.5rem 'Playfair Display';
+    color: #d76a89
+}
+
+.story-steps h2 {
+    font-size: 1.65rem;
+    margin: 0 0 7px
+}
+
+.story-steps p {
+    margin: 0;
+    color: #785f70
+}
+
+.legal {
+    max-width: 760px;
+    margin: auto;
+    padding: 70px 28px
+}
+
+.legal h1 {
+    font-size: clamp(3rem, 6vw, 4.7rem)
+}
+
+.legal h2 {
+    font-size: 1.65rem;
+    margin: 38px 0 8px
+}
+
+.legal p {
+    color: #705c6b
+}
+
+.legal .legal-note {
+    padding: 12px 15px;
+    background: #fff0d3;
+    border-radius: 8px;
+    font-size: .82rem;
+    color: #795e42
+}
+
+@media(max-width:650px) {
+    .template-grid {
+        grid-template-columns: 1fr
+    }
+
+    .template-grid a {
+        min-height: 170px
+    }
+
+    .template-grid h2 {
+        margin-top: 30px
+    }
+
+    .story-steps article {
+        gap: 17px
+    }
+}
