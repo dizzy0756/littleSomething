@@ -42,7 +42,27 @@ small{color: var(--ink-soft); font-size: 0.78rem;}
 .builder-header-title{
   display:flex; align-items:center; gap:0.7rem;
 }
-.logo-dot{font-size:1.6rem; color: inherit; text-decoration: none;}
+.brand{
+  font-weight:700;
+  color:var(--ink);
+  font-size:1.25rem;
+  text-decoration:none;
+  letter-spacing:-.06em;
+  display:inline-flex;
+  align-items:center;
+  gap:0.15rem;
+}
+.brand span{
+  font-family:'Playfair Display',serif;
+  font-style:italic;
+  font-size:1.32em;
+}
+.brand .logo-dot{
+  color:var(--accent);
+  font-style:normal;
+  font-size:0.9em;
+  margin-left:3px;
+}
 .builder-header-title h1{font-size:1.15rem;}
 .builder-header-title p{margin:0.1rem 0 0; font-size:0.8rem; color:var(--ink-soft);}
 .builder-header-actions{display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;}
