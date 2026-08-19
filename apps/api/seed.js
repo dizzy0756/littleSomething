@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { db, pool } = require("./src/lib/database");
+const { db, init, pool } = require("./src/lib/database");
 const { hashPassword, generateId } = require("./src/lib/auth");
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
@@ -14,7 +14,7 @@ if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
 async function seed() {
   // Ensure the schema (and migrations) exist before we touch rows. The app
   // normally creates them on boot; seed may run standalone.
-  await db.init();
+  await init();
 
   const byEmail = await db.prepare("SELECT id FROM users WHERE email = $1").get(ADMIN_EMAIL);
   const anyAdmin = await db.prepare("SELECT id FROM users WHERE role = 'admin'").get();
