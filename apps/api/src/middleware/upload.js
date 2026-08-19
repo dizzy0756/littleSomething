@@ -66,6 +66,9 @@ function validateFileContent(filePath, mimetype) {
   });
 }
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 20 * 1024 * 1024 } });
+// Hard ceiling is the largest allowed upload (music = 25 MB). Per-kind limits
+// are enforced at the /sign + /confirm step via checkMedia; multer only guards
+// against pathological sizes.
+const upload = multer({ storage, fileFilter, limits: { fileSize: 25 * 1024 * 1024 } });
 
 module.exports = { upload, UPLOAD_DIR, validateFileContent };

@@ -37,7 +37,9 @@ async function generateLinkForCreation(creationId, userId, expiryDays) {
         .run(link.id, link.creation_id, link.user_id, link.slug, link.expires_at, link.views);
       return { link: link, created: true };
     } catch (err) {
-      if (err.code === "23505" && err.message.toLowerCase().indexOf("slug") !== -1) {
+      // M9: retry on any unique-violation (slug collision) regardless of the
+      // index/constraint name surfaced in the error message.
+      if (err.code === "23505") {
         console.warn("Slug collision, retrying...", slug);
         continue;
       }

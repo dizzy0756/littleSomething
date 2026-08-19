@@ -9,3 +9,9 @@ compatibility_date = "2024-09-01"
 #   VITE_API_BASE_URL     -> https://api.littlesomething.app
 #   VITE_RAZORPAY_KEY_ID  -> Razorpay publishable key (safe in the browser)
 #   VITE_CDN_BASE_URL     -> https://cdn.littlesomething.app  (R2 public URL)
+#
+# Pages Functions (functions/) need a runtime env var (NOT a VITE_ var):
+#   API_BASE_URL          -> https://api.littlesomething.app
+# Set it in the Pages dashboard under Settings > Functions > Environment variables.
+# The function in functions/[[path]].js proxies /s/*, /api/*, /uploads/* and
+# /templates/* to the API so surprise links resolve on this origin (CODE_AUDIT C3).

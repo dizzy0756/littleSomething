@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { db } = require("./src/lib/database");
+const { db, pool } = require("./src/lib/database");
 const { hashPassword, generateId } = require("./src/lib/auth");
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
@@ -12,25 +12,29 @@ if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
 }
 
 async function seed() {
+  // Ensure the schema (and migrations) exist before we touch rows. The app
+  // normally creates them on boot; seed may run standalone.
+  await db.init();
+
   const byEmail = await db.prepare("SELECT id FROM users WHERE email = $1").get(ADMIN_EMAIL);
   const anyAdmin = await db.prepare("SELECT id FROM users WHERE role = 'admin'").get();
 
   if (byEmail) {
     await db.prepare("UPDATE users SET password_hash = $1, name = $2 WHERE id = $3")
-      .run(hashPassword(ADMIN_PASSWORD), ADMIN_NAME, byEmail.id);
+      .run(await hashPassword(ADMIN_PASSWORD), ADMIN_NAME, byEmail.id);
     console.log("Admin credentials updated for", ADMIN_EMAIL);
   } else if (anyAdmin) {
     await db.prepare("UPDATE users SET email = $1, password_hash = $2, name = $3 WHERE id = $4")
-      .run(ADMIN_EMAIL, hashPassword(ADMIN_PASSWORD), ADMIN_NAME, anyAdmin.id);
+      .run(ADMIN_EMAIL, await hashPassword(ADMIN_PASSWORD), ADMIN_NAME, anyAdmin.id);
     console.log("Admin migrated to", ADMIN_EMAIL);
   } else {
     const id = generateId();
     await db.prepare("INSERT INTO users (id, email, password_hash, name, role) VALUES ($1, $2, $3, $4, $5)")
-      .run(id, ADMIN_EMAIL, hashPassword(ADMIN_PASSWORD), ADMIN_NAME, "admin");
+      .run(id, ADMIN_EMAIL, await hashPassword(ADMIN_PASSWORD), ADMIN_NAME, "admin");
     console.log("Admin created:", ADMIN_EMAIL);
   }
 
-  await db.pool.end();
+  await pool.end();
 }
 
 seed().catch((err) => {

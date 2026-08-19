@@ -2,8 +2,8 @@ const express = require("express");
 const { generateId } = require("../lib/auth");
 const { db } = require("../lib/database");
 const { authMiddleware } = require("../middleware/auth");
-const { upload, validateFileContent } = require("../middleware/upload");
-const { checkMedia } = require("@little-something/shared");
+const { upload, validateFileContent, UPLOAD_DIR } = require("../middleware/upload");
+const { checkMedia, mediaSignSchema, validateBody } = require("@little-something/shared");
 const r2 = require("../lib/r2");
 const { toFileDTO } = require("../lib/files");
 
@@ -16,7 +16,7 @@ router.use(authMiddleware);
  * Returns a presigned R2 PUT URL when R2 is configured, otherwise signals
  * the client to use the multipart /file fallback (local dev).
  */
-router.post("/sign", async (req, res) => {
+router.post("/sign", validateBody(mediaSignSchema), async (req, res) => {
   try {
     const { kind, mime, bytes, creation_id, original_name } = req.body;
     const check = checkMedia(kind, mime, Number(bytes) || 0);
@@ -61,6 +61,34 @@ router.post("/confirm", async (req, res) => {
     if (!file_id || !key || !mime) {
       return res.status(400).json({ error: "Missing upload confirmation fields" });
     }
+
+    const sizeBytes = Number(bytes) || 0;
+
+    // H2: re-validate kind/mime/size server-side. The /sign step already checked
+    // these, but /confirm must not blindly trust client-supplied metadata.
+    if (kind) {
+      const check = checkMedia(kind, mime, sizeBytes);
+      if (!check.ok) {
+        return res.status(400).json({ error: check.error });
+      }
+    }
+
+    // H2: the R2 key must live under the authenticated user's prefix so a client
+    // cannot confirm an object stored at an arbitrary path.
+    const expectedPrefix = req.user.id + "/";
+    if (!key.startsWith(expectedPrefix)) {
+      return res.status(400).json({ error: "Invalid storage key" });
+    }
+
+    // H2: confirm the object actually exists in R2 before persisting the row.
+    // Skipped when R2 is not configured (local fallback uses /file instead).
+    if (r2.isConfigured()) {
+      const exists = await r2.headObject(key);
+      if (!exists) {
+        return res.status(400).json({ error: "Uploaded object not found in storage" });
+      }
+    }
+
     const record = {
       id: file_id,
       user_id: req.user.id,
@@ -68,7 +96,7 @@ router.post("/confirm", async (req, res) => {
       filename: key.split("/").pop(),
       original_name: original_name || key.split("/").pop(),
       mime_type: mime,
-      size: Number(bytes) || 0,
+      size: sizeBytes,
       path: key,
       storage: "r2",
     };
@@ -87,15 +115,33 @@ router.post("/confirm", async (req, res) => {
 
 /**
  * Step 2b (local fallback) — receive the bytes directly (dev only).
+ *
+ * M5: wrap multer so that a size-limit overflow (which may have partially
+ * written a temp file) is caught and the partial file is removed instead of
+ * leaking on the ephemeral Render disk.
  */
-router.post("/file", upload.single("file"), async (req, res) => {
+function handleLocalFileUpload(req, res, next) {
+  upload.single("file")(req, res, function (err) {
+    if (err) {
+      if (req.file && req.file.path) {
+        try { require("fs").unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+      }
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ error: "File too large (max 25 MB)" });
+      }
+      return res.status(400).json({ error: err.message || "Upload failed" });
+    }
+    next();
+  });
+}
+
+router.post("/file", handleLocalFileUpload, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
     if (!validateFileContent(req.file.path, req.file.mimetype)) {
-      const fs = require("fs");
-      fs.unlinkSync(req.file.path);
+      require("fs").unlinkSync(req.file.path);
       return res.status(400).json({ error: "Invalid file content" });
     }
     const record = {

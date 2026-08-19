@@ -259,8 +259,8 @@
       fileInput.addEventListener("change", async function () {
         var file = fileInput.files[0];
         if (!file) return;
-        if (file.size > 8 * 1024 * 1024) {
-          alert("That photo is over 8MB — try a smaller one.");
+        if (file.size > 10 * 1024 * 1024) {
+          alert("That photo is over 10MB — try a smaller one.");
           return;
         }
         thumb.alt = file.name;
@@ -281,7 +281,7 @@
       uploadRow.appendChild(fileInput);
       wrapper.appendChild(uploadRow);
       var hint = document.createElement("small");
-      hint.textContent = "JPG, PNG or WEBP, up to 8MB.";
+      hint.textContent = "JPG, PNG or WEBP, up to 10MB.";
       wrapper.appendChild(hint);
     } else if (field.type === "audio") {
       var audioRow = document.createElement("div");
@@ -297,8 +297,8 @@
       audioInput.addEventListener("change", async function () {
         var file = audioInput.files[0];
         if (!file) return;
-        if (file.size > 15 * 1024 * 1024) {
-          alert("That song is over 15MB — try a smaller file.");
+        if (file.size > 25 * 1024 * 1024) {
+          alert("That song is over 25MB — try a smaller file.");
           return;
         }
         fileName.textContent = file.name;

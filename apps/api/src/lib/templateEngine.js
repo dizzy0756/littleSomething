@@ -14,12 +14,19 @@ function esc(str) {
 }
 
 function normalizeAssetPaths(data) {
-  if (typeof data === "string") {
-    return data.replace(/^assets\//, "/assets/");
+  const webBase = process.env.WEB_BASE_URL ? process.env.WEB_BASE_URL.replace(/\/$/, "") : "";
+  function rewriteAsset(str) {
+    if (typeof str !== "string") return str;
+    // Legacy store: relative "assets/..." -> "/assets/...".
+    if (str.indexOf("assets/") === 0) return "/" + str;
+    // C2: stock assets are served by the web frontend. Make them absolute so
+    // they resolve regardless of which origin serves the /s page (API vs
+    // Cloudflare). User uploads (/uploads or absolute R2 URLs) are untouched.
+    if (str.indexOf("/assets/") === 0 && webBase) return webBase + str;
+    return str;
   }
-  if (Array.isArray(data)) {
-    return data.map(normalizeAssetPaths);
-  }
+  if (typeof data === "string") return rewriteAsset(data);
+  if (Array.isArray(data)) return data.map(normalizeAssetPaths);
   if (data && typeof data === "object") {
     var out = {};
     Object.keys(data).forEach(function (key) {
@@ -115,10 +122,16 @@ function buildSiteHTML(templateId, data, opts) {
 
    const nonceAttr = opts.nonce ? ' nonce="' + esc(opts.nonce) + '"' : "";
 
-  const normalizedData = normalizeAssetPaths(data);
+  // C4: merge the stored data with the template's defaultData so every field
+  // referenced by renderBody exists. A missing nested field would otherwise
+  // throw and turn the live surprise link into a 500. This is the single
+  // defensive change that makes rendering crash-proof.
+  const mergedData = Object.assign({}, template.defaultData || {}, data || {});
+
+  const normalizedData = normalizeAssetPaths(mergedData);
   const bodyHTML = template.renderBody ? template.renderBody(normalizedData) : "<p>Template has no renderBody.</p>";
   const interactionJS = template.getInteractions ? template.getInteractions(normalizedData) : "";
-  const title = esc(data.siteTitle || "A Little Something");
+  const title = esc(mergedData.siteTitle || "A Little Something");
 
   return "<!DOCTYPE html>" +
     "<html lang=\"en\">" +
@@ -132,11 +145,25 @@ function buildSiteHTML(templateId, data, opts) {
     "<link href=\"https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;1,600&display=swap\" rel=\"stylesheet\">" +
     cssLink +
     "</head>" +
-    "<body data-theme=\"" + esc(data.theme || "romantic") + "\">" +
+    "<body data-theme=\"" + esc(mergedData.theme || "romantic") + "\">" +
     bodyHTML +
     "<script" + nonceAttr + ">" + interactionJS + "</script>" +
     "</body>" +
     "</html>";
 }
 
-module.exports = { loadTemplate, getTemplate, listTemplates, buildSiteHTML, esc, escLines };
+function preloadAll() {
+  if (!fs.existsSync(TEMPLATES_DIR)) return;
+  const entries = fs.readdirSync(TEMPLATES_DIR, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      try {
+        loadTemplate(entry.name);
+      } catch (err) {
+        console.warn("Failed to preload template", entry.name, "—", err.message);
+      }
+    }
+  }
+}
+
+module.exports = { loadTemplate, getTemplate, listTemplates, buildSiteHTML, preloadAll, esc, escLines };

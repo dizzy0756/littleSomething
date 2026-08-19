@@ -15,8 +15,10 @@ if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
   console.warn("RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET not set — payment features will be disabled");
 }
 
-// Explicit allowlist. NEVER use `*` with credentials. Reflect the matched
-// origin so the browser sends Authorization / cookies cross-origin.
+// Explicit allowlist. NEVER use `*` with credentials. Reflect only an
+// explicitly allowed origin so the browser sends Authorization / cookies
+// cross-origin; non-browser callers (curl, health checks) are permitted
+// without reflecting a credentialed wildcard.
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
@@ -24,8 +26,11 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
 
 const corsOptions = {
   origin: (origin, cb) => {
-    // Allow non-browser tools (curl, health checks) with no Origin header.
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, origin || true);
+    // Browser requests must come from an explicitly allowed origin.
+    if (origin && allowedOrigins.includes(origin)) return cb(null, origin);
+    // Requests with no Origin header (curl, health checks, server-to-server)
+    // are allowed but without reflecting a credentialed wildcard (`true`).
+    if (!origin) return cb(null, false);
     return cb(new Error("Not allowed by CORS"));
   },
   credentials: true,
@@ -47,6 +52,15 @@ const paymentRoutes = require("./src/routes/payments");
 const { adminSessionFromCookie } = require("./src/middleware/auth");
 
 const db = require("./src/lib/database");
+const { pool } = db;
+const { preloadAll: preloadTemplates } = require("./src/lib/templateEngine");
+
+// PostgreSQL pool: an idle/transient connection error surfaces as an 'error'
+// event on the pool. Without a handler Node throws and terminates the process,
+// so swallow (log) idle errors and let the pool recover.
+pool.on("error", (err) => {
+  console.error("Unexpected PostgreSQL pool error:", err.message);
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -55,11 +69,16 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions)); // preflight
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// Razorpay webhook must receive the RAW body for HMAC verification, and this
+// raw parser MUST run BEFORE the global express.json() so the stream is not
+// already consumed/parsed (a pre-parsed body makes signature verification
+// impossible). See CODE_AUDIT.md C1.
+app.use("/api/payments/webhook", express.raw({ type: "application/json", limit: "10mb" }), paymentRoutes.webhookRouter);
 
-// Razorpay webhook must receive the RAW body for HMAC verification.
-app.use("/api/payments/webhook", express.raw({ type: "application/json" }), paymentRoutes.webhookRouter);
+// Large creations (big data_json) must not be rejected here before reaching
+// route logic. Keep this >= the largest allowed upload (R2 music = 25 MB).
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
 // Static assets served by the API:
 //  - /templates : CSS for server-rendered surprise pages (/s/:slug)
@@ -96,15 +115,35 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal server error", message: err.message });
 });
 
+let server;
+
 async function start() {
   await db.init();
-  app.listen(PORT, () => {
+  // M10: register all templates at boot so the first /s request never triggers
+  // a cold-load template registration race.
+  preloadTemplates();
+  server = app.listen(PORT, () => {
     console.log(`Little Something API running on http://localhost:${PORT}`);
     if (allowedOrigins.length === 0) {
       console.warn("ALLOWED_ORIGINS is empty — CORS will reject browser requests from the frontend.");
     }
   });
 }
+
+function shutdown(signal) {
+  console.log(`Received ${signal}, shutting down gracefully...`);
+  if (server) server.close();
+  // Drain the pool; force-exit if it takes too long.
+  const force = setTimeout(() => process.exit(1), 10000);
+  force.unref();
+  pool
+    .end()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 start().catch((err) => {
   console.error("Failed to start server:", err);

@@ -65,19 +65,22 @@
       throw new Error("Unknown template: " + templateId + ". Did you forget to load it?");
     }
 
+    // C4: merge with the template's defaults so a missing nested field can never
+    // crash renderBody (mirrors the API-side templateEngine fix).
+    const mergedData = Object.assign({}, template.defaultData || {}, data || {});
     const cssLink = opts.inlineCSS
       ? "<style>" + opts.inlineCSS + "</style>"
       : '<link rel="stylesheet" href="' + esc(opts.cssHref || "templates/" + templateId + "/template.css") + '">';
 
     const bodyHTML = template.renderBody
-      ? template.renderBody(data)
+      ? template.renderBody(mergedData)
       : "<p>Template has no renderBody.</p>";
 
     const interactionJS = template.getInteractions
-      ? template.getInteractions(data)
+      ? template.getInteractions(mergedData)
       : "";
 
-    const title = esc(data.siteTitle || "A Little Something");
+    const title = esc(mergedData.siteTitle || "A Little Something");
 
     return "<!DOCTYPE html>" +
       "<html lang=\"en\">" +
@@ -91,7 +94,7 @@
       "<link href=\"https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;1,600&display=swap\" rel=\"stylesheet\">" +
       cssLink +
       "</head>" +
-      "<body data-theme=\"" + esc(data.theme || "romantic") + "\">" +
+      "<body data-theme=\"" + esc(mergedData.theme || "romantic") + "\">" +
       bodyHTML +
       "<script>" + interactionJS + "</script>" +
       "</body>" +

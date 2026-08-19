@@ -1,5 +1,5 @@
 const express = require("express");
-const { db } = require("../lib/database");
+const { db, transaction } = require("../lib/database");
 const { authMiddleware, adminOnly } = require("../middleware/auth");
 const { generateLinkForCreation } = require("./links");
 
@@ -13,8 +13,8 @@ router.get("/stats", async (req, res) => {
     const creationCount = await db.prepare("SELECT COUNT(*) as count FROM creations").get();
     const linkCount = await db.prepare("SELECT COUNT(*) as count FROM public_links").get();
     const totalViews = await db.prepare("SELECT COALESCE(SUM(views), 0) as total FROM public_links").get();
-    const paymentCount = await db.prepare("SELECT COUNT(*) as count FROM payments WHERE status IN ('succeeded', 'paid')").get();
-    const revenue = await db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status IN ('succeeded', 'paid')").get();
+    const paymentCount = await db.prepare("SELECT COUNT(*) as count FROM payments WHERE status = 'paid'").get();
+    const revenue = await db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid'").get();
 
     res.json({
       stats: {
@@ -23,7 +23,8 @@ router.get("/stats", async (req, res) => {
         links: linkCount.count,
         totalViews: totalViews.total,
         payments: paymentCount.count,
-        revenue: revenue.total,
+        // amount stored as integer paise (M3) → convert to currency units.
+        revenue: (Number(revenue.total) || 0) / 100,
       },
     });
   } catch (err) {
@@ -89,10 +90,14 @@ router.post("/links/generate", async (req, res) => {
 router.delete("/users/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    await db.prepare("DELETE FROM link_views WHERE link_id IN (SELECT id FROM public_links WHERE user_id = $1)").run(id);
-    await db.prepare("DELETE FROM public_links WHERE user_id = $1").run(id);
-    await db.prepare("DELETE FROM creations WHERE user_id = $1").run(id);
-    await db.prepare("DELETE FROM users WHERE id = $1").run(id);
+    // M7: cascade the deletes in a single transaction so a mid-sequence failure
+    // cannot leave orphaned rows (links whose creations were already deleted).
+    await transaction(async (client) => {
+      await client.query("DELETE FROM link_views WHERE link_id IN (SELECT id FROM public_links WHERE user_id = $1)", [id]);
+      await client.query("DELETE FROM public_links WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM creations WHERE user_id = $1", [id]);
+      await client.query("DELETE FROM users WHERE id = $1", [id]);
+    });
     res.json({ success: true });
   } catch (err) {
     console.error("Admin delete user error:", err);
@@ -103,9 +108,11 @@ router.delete("/users/:id", async (req, res) => {
 router.delete("/creations/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    await db.prepare("DELETE FROM public_links WHERE creation_id = $1").run(id);
-    await db.prepare("DELETE FROM link_views WHERE link_id IN (SELECT id FROM public_links WHERE creation_id = $1)").run(id);
-    await db.prepare("DELETE FROM creations WHERE id = $1").run(id);
+    await transaction(async (client) => {
+      await client.query("DELETE FROM public_links WHERE creation_id = $1", [id]);
+      await client.query("DELETE FROM link_views WHERE link_id IN (SELECT id FROM public_links WHERE creation_id = $1)", [id]);
+      await client.query("DELETE FROM creations WHERE id = $1", [id]);
+    });
     res.json({ success: true });
   } catch (err) {
     console.error("Admin delete creation error:", err);
@@ -116,8 +123,10 @@ router.delete("/creations/:id", async (req, res) => {
 router.delete("/links/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    await db.prepare("DELETE FROM link_views WHERE link_id = $1").run(id);
-    await db.prepare("DELETE FROM public_links WHERE id = $1").run(id);
+    await transaction(async (client) => {
+      await client.query("DELETE FROM link_views WHERE link_id = $1", [id]);
+      await client.query("DELETE FROM public_links WHERE id = $1", [id]);
+    });
     res.json({ success: true });
   } catch (err) {
     console.error("Admin delete link error:", err);

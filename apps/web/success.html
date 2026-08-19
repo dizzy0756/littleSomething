@@ -84,7 +84,7 @@
       <p id="statusText"><span class="loader"></span> Confirming your payment...</p>
       <div id="linkArea" hidden>
         <div class="link-box">
-          <span id="publicUrl"></span>
+          <a id="publicUrl" class="link-url" target="_blank" rel="noopener noreferrer"></a>
         </div>
         <button class="button copy-btn" id="copyBtn">Copy private link</button>
         <br><br>
@@ -107,8 +107,9 @@
       }
 
       var baseUrl = window.API_BASE || window.location.origin;
-      var fullUrl = baseUrl + "/s/" + slug;
+      var fullUrl = baseUrl.replace(/\/$/, "") + "/s/" + slug;
       publicUrlEl.textContent = fullUrl;
+      publicUrlEl.href = fullUrl;
 
       var token = localStorage.getItem("littleSomething_token");
       if (token) {

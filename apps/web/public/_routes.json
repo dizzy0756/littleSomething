@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "include": ["/s/*", "/api/*", "/uploads/*", "/templates/*"],
+  "exclude": [
+    "/assets/*",
+    "/*.{css,js,html,svg,png,jpg,jpeg,gif,webp,avif,mp3,wav,ogg,ico,woff2,woff,ttf,json,map,txt}"
+  ]
+}

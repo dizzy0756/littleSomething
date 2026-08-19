@@ -43,6 +43,10 @@ services:
         value: INR
       - key: PRIVATE_LINK_EXPIRY_DAYS
         value: "7"
+      # Origin of the Cloudflare web frontend — used to build /s/ share links and
+      # to rewrite stock /assets URLs so they resolve on the branded domain.
+      - key: WEB_BASE_URL
+        value: https://littlesomething.app
       - key: R2_ACCOUNT_ID
         sync: false
       - key: R2_ACCESS_KEY_ID

@@ -8,12 +8,16 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
 
-function hashPassword(password) {
-  return bcrypt.hashSync(password, 10);
+// Async bcrypt — the sync variant blocks the Node event loop (bcrypt is
+// intentionally CPU-heavy), which serialises the server under concurrent
+// logins/registrations. See CODE_AUDIT.md H3.
+async function hashPassword(password) {
+  return bcrypt.hash(password, 10);
 }
 
-function comparePassword(password, hash) {
-  return bcrypt.compareSync(password, hash);
+async function comparePassword(password, hash) {
+  if (!hash) return false;
+  return bcrypt.compare(password, hash);
 }
 
 function generateToken(user) {

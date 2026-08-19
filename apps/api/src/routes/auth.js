@@ -54,7 +54,7 @@ router.post("/register", async (req, res) => {
     const user = {
       id: generateId(),
       email: email.toLowerCase(),
-      password_hash: hashPassword(password),
+      password_hash: await hashPassword(password),
       name: name || "",
       role: "customer",
     };
@@ -86,7 +86,7 @@ router.post("/login", async (req, res) => {
     }
 
     const user = await db.prepare("SELECT * FROM users WHERE email = $1").get(email.toLowerCase());
-    if (!user || !comparePassword(password, user.password_hash)) {
+    if (!user || !(await comparePassword(password, user.password_hash))) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 

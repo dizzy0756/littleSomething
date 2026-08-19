@@ -23,16 +23,54 @@ function getLinkExpiryDays() {
   return parseInt(process.env.PRIVATE_LINK_EXPIRY_DAYS || "7", 10);
 }
 
+// Amounts are stored as integer paise (see M3). Convert to a display value.
+function formatAmount(paise, currency) {
+  const amount = Number(paise || 0) / 100;
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: currency || "INR",
+    }).format(amount);
+  } catch (e) {
+    return currency + " " + amount.toFixed(2);
+  }
+}
+
+// Public base URL for surprise links. Prefer the configured web frontend origin
+// (which proxies /s/* to this API) so shared links live on the branded domain.
+function publicBaseUrl(req) {
+  const webBase = process.env.WEB_BASE_URL;
+  if (webBase) return webBase.replace(/\/$/, "");
+  return (req.protocol || "https") + "://" + req.get("host");
+}
+
 function verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature) {
   const hmac = crypto.createHmac("sha256", RAZORPAY_KEY_SECRET);
   const generated = hmac.update(razorpayOrderId + "|" + razorpayPaymentId).digest("hex");
   return generated === razorpaySignature;
 }
 
+// Razorpay signs webhooks with the dedicated webhook secret (NOT the key
+// secret). Fall back to the key secret only if no webhook secret is configured.
 function verifyWebhookSignature(body, signature) {
-  const hmac = crypto.createHmac("sha256", RAZORPAY_KEY_SECRET);
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET || RAZORPAY_KEY_SECRET;
+  if (!secret) return false;
+  const hmac = crypto.createHmac("sha256", secret);
   const generated = hmac.update(body).digest("hex");
   return generated === signature;
+}
+
+// M4: guarantee a single confirmation email per payment even if both /verify
+// and the Razorpay webhook succeed. Uses an idempotent email_sent flag.
+async function sendConfirmationIfNeeded(paymentId, email, amount, currency, linkUrl, expiresAt) {
+  const payment = await db.prepare("SELECT email_sent FROM payments WHERE id = $1").get(paymentId);
+  if (!payment) return;
+  if (payment.email_sent) return;
+
+  const { sendPaymentConfirmation } = require("../lib/email");
+  await sendPaymentConfirmation(email, formatAmount(amount, currency), linkUrl, expiresAt);
+
+  await db.prepare("UPDATE payments SET email_sent = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1").run(paymentId);
 }
 
 router.post("/create-order", async (req, res) => {
@@ -78,7 +116,8 @@ router.post("/create-order", async (req, res) => {
       id: generateId(),
       user_id: req.user.id,
       creation_id: creation_id,
-      amount: order.amount / 100,
+      // M3: store as integer paise.
+      amount: order.amount,
       currency: order.currency,
       status: "created",
       razorpay_order_id: order.id,
@@ -162,10 +201,10 @@ router.post("/verify", async (req, res) => {
     const linkResult = await generateLinkForCreation(payment.creation_id, payment.user_id, getLinkExpiryDays());
     const link = linkResult.link;
 
-    const publicUrl = (req.protocol + "://" + req.get("host")) + "/s/" + link.slug;
+    const publicUrl = publicBaseUrl(req) + "/s/" + link.slug;
 
     const { sendPaymentConfirmation } = require("../lib/email");
-    sendPaymentConfirmation(req.user.email, payment.amount, publicUrl, link.expires_at);
+    await sendConfirmationIfNeeded(payment.id, req.user.email, payment.amount, payment.currency, publicUrl, link.expires_at);
 
     res.status(200).json({
       success: true,
@@ -187,7 +226,13 @@ webhookRouter.post("/", async (req, res) => {
       return res.status(400).send("Missing signature");
     }
 
-    const body = req.body.toString();
+    // C1: req.body is a raw Buffer here because the raw parser is mounted before
+    // express.json() in index.js. Guard against an empty body.
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return res.status(400).send("Empty body");
+    }
+
+    const body = req.body.toString("utf8");
     const isValid = verifyWebhookSignature(body, signature);
     if (!isValid) {
       return res.status(400).send("Invalid signature");
@@ -239,11 +284,10 @@ webhookRouter.post("/", async (req, res) => {
           link = linkResult.link;
         }
 
-        const publicUrl = "https://" + req.get("host") + "/s/" + link.slug;
-        const { sendPaymentConfirmation } = require("../lib/email");
+        const publicUrl = publicBaseUrl(req) + "/s/" + link.slug;
         const user = await db.prepare("SELECT email FROM users WHERE id = $1").get(payment.user_id);
         if (user) {
-          sendPaymentConfirmation(user.email, payment.amount, publicUrl, link.expires_at);
+          await sendConfirmationIfNeeded(payment.id, user.email, payment.amount, payment.currency, publicUrl, link.expires_at);
         }
       }
     }

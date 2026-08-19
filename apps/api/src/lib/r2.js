@@ -6,7 +6,7 @@
  * ephemeral disk). When R2 is not configured we fall back to local disk
  * uploads under /uploads (dev only) so the app still runs locally.
  */
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
@@ -57,6 +57,21 @@ async function deleteObject(key) {
   await client.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
 }
 
+/**
+ * Verify an object exists in R2 (used to confirm an upload actually landed
+ * before we persist its metadata). Returns true when present (or when R2 is not
+ * configured, in which case the check is skipped).
+ */
+async function headObject(key) {
+  if (!client) return true;
+  try {
+    await client.send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 /** Resolve the public URL for a stored object (R2 key or local path). */
 function resolveUrl(storage, path) {
   if (storage === "r2" && R2_PUBLIC_URL) {
@@ -72,5 +87,6 @@ module.exports = {
   buildKey,
   signUploadUrl,
   deleteObject,
+  headObject,
   resolveUrl,
 };
