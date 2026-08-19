@@ -1,11 +1,12 @@
 # Render Blueprint — deploys the backend (apps/api) as a Web Service.
-# Push this repo to GitHub and connect it in the Render dashboard ("Blueprint").
+# Must live at the REPO ROOT: Render's Blueprint only reads render.yaml from the
+# repository root, not from subfolders.
+#
 # Secrets marked sync:false are entered once in the Render dashboard.
 #
-# NOTE: no rootDir. Install must happen from the repo ROOT so npm workspaces
-# can symlink the private @little-something/shared package into apps/api.
-# (Building inside apps/api alone fails with E404 because that package is
-# not published to npm.)
+# NOTE: no rootDir. Install happens from the repo ROOT so npm workspaces can
+# symlink the private @little-something/shared package into apps/api. Building
+# inside apps/api alone fails with E404 because that package is not published to npm.
 
 services:
   - type: web
