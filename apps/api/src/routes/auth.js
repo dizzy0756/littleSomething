@@ -1,5 +1,5 @@
 const express = require("express");
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const { generateId, hashPassword, comparePassword, generateToken } = require("../lib/auth");
 const { db } = require("../lib/database");
 
@@ -11,6 +11,10 @@ const authLimiter = rateLimit({
   message: { error: "Too many attempts, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
+  // Cloudflare overwrites CF-Connecting-IP at its edge, so it cannot be spoofed
+  // through the Pages proxy. Key the limiter on the real client IP, otherwise
+  // every visitor worldwide shares one counter (the proxy IP).
+  keyGenerator: (req) => ipKeyGenerator(req.headers["cf-connecting-ip"] || req.ip || ""),
 });
 
 router.use(authLimiter);

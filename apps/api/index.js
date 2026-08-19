@@ -63,6 +63,12 @@ pool.on("error", (err) => {
 });
 
 const app = express();
+
+// Cloudflare Pages Function -> Render router puts proxies in front of the app.
+// Without this, req.ip is the proxy IP: express-rate-limit would throttle all
+// users under one bucket and link_views would record the proxy address.
+app.set("trust proxy", true);
+
 const PORT = process.env.PORT || 3001;
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));

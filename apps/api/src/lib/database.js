@@ -1,8 +1,16 @@
 const { Pool } = require("pg");
 require("dotenv").config();
 
+const connectionString = process.env.DATABASE_URL || "";
+// Managed Postgres (Neon/Supabase) requires TLS. Enable it when the connection
+// string asks for it, or explicitly via DATABASE_SSL=true. Local Postgres stays plain.
+const useSSL =
+  process.env.DATABASE_SSL === "true" ||
+  /[?&]sslmode=(require|verify-ca|verify-full)/.test(connectionString);
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
+  ssl: useSSL ? { rejectUnauthorized: false } : false,
   max: parseInt(process.env.PG_POOL_MAX || "10", 10),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

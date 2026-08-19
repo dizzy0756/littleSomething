@@ -18,7 +18,7 @@ export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
 
-  const API_BASE = (env.API_BASE_URL || "https://api.littlesomething.app").replace(/\/$/, "");
+  const API_BASE = (env.API_BASE_URL || "https://little-something-api.onrender.com").replace(/\/$/, "");
   const PROXIED_PREFIXES = ["/s/", "/api/", "/uploads/", "/templates/"];
 
   const isProxied = PROXIED_PREFIXES.some((p) => url.pathname.startsWith(p));

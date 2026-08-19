@@ -13,6 +13,8 @@ const pages = {
   "how-it-works": resolve(root, "how-it-works.html"),
   terms: resolve(root, "terms.html"),
   privacy: resolve(root, "privacy.html"),
+  contact: resolve(root, "contact.html"),
+  refund: resolve(root, "refund.html"),
   "payment-failed": resolve(root, "payment-failed.html"),
   success: resolve(root, "success.html"),
 };
@@ -44,7 +46,10 @@ export default defineConfig({
       // Only proxy real surprise pages (/s/<slug>), not /success.html etc.
       "^/s/.+": process.env.VITE_PROXY_API || "http://localhost:3001",
       "/uploads": process.env.VITE_PROXY_API || "http://localhost:3001",
-      "/templates": process.env.VITE_PROXY_API || "http://localhost:3001",
+      // Only proxy template assets (/templates/<id>/...), not the local
+      // /templates.html marketing page. The trailing slash is required so the
+      // prefix match doesn't also capture /templates.html.
+      "^/templates/": process.env.VITE_PROXY_API || "http://localhost:3001",
     },
   },
 });
