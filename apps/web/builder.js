@@ -857,6 +857,7 @@
         var userEmail = getUserEmail();
         var rzp = new Razorpay({
           key: orderData.key_id,
+          order_id: orderData.order_id,
           amount: orderData.amount,
           currency: orderData.currency,
           name: "LittleSomething",
