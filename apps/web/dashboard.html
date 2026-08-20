@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Your surprises — LittleSomething</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+  <script src="/src/config.js"></script>
+</head>
+<body>
+  <header class="dash-nav">
+    <a class="brand" href="index.html">little<span>Something</span><i>♥</i></a>
+    <nav>
+      <a class="button small" href="builder.html">Create a surprise <span>→</span></a>
+      <span class="user" id="userEmail"></span>
+      <button class="btn-sm" id="logoutBtn" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main class="dash-wrap" id="dashBody" hidden>
+    <h1>Your surprises</h1>
+    <p class="dash-sub">Every little something you've made, with the private link to share it.</p>
+
+    <section class="stats">
+      <div class="stat-card"><div class="label">Creations</div><div class="value" id="statCreations">0</div></div>
+      <div class="stat-card"><div class="label">Links</div><div class="value" id="statLinks">0</div></div>
+      <div class="stat-card"><div class="label">Total views</div><div class="value" id="statViews">0</div></div>
+    </section>
+
+    <section id="creationsList"></section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="login-modal" id="loginModal">
+    <div class="modal">
+      <button class="icon-btn" id="loginClose" type="button">✕</button>
+      <h2 id="loginTitle">Login</h2>
+      <form id="loginForm">
+        <div class="field" id="loginNameField" style="display:none;">
+          <span>Name</span>
+          <input type="text" id="loginName" autocomplete="name" />
+        </div>
+        <div class="field">
+          <span>Email</span>
+          <input type="email" id="loginEmail" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <span>Password</span>
+          <input type="password" id="loginPassword" required autocomplete="current-password" />
+        </div>
+        <button class="button" type="submit" style="width:100%;justify-content:center;margin-top:.4rem;">Continue</button>
+      </form>
+      <button class="btn-sm" id="loginToggle" type="button" style="width:100%;justify-content:center;margin-top:.8rem;">
+        Need an account? Register
+      </button>
+      <p class="err" id="loginError"></p>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

@@ -19,7 +19,8 @@
   <header class="nav"><a class="brand" href="index.html">little<span>Something</span><i>♥</i></a><button
       class="nav-toggle" aria-label="Open menu">☰</button>
   <nav><a href="#how">How it works</a><a href="templates.html">Templates</a><a href="#pricing">Pricing</a><a
-      href="#faq">FAQ</a><a class="button button-small" href="builder.html">Create a surprise <span>→</span></a><a
+      href="#faq">FAQ</a><a class="button button-small"       href="builder.html">Create a surprise <span>→</span></a><a
+      id="dashNavLink" class="button button-small" href="dashboard.html" style="display:none;">My surprises <span>→</span></a><a
       id="adminNavLink" class="button button-small" href="admin" style="display:none;">Admin <span>→</span></a></nav>
   </header>
   <main>
@@ -203,6 +204,8 @@
     (function () {
       var token = localStorage.getItem("littleSomething_token");
       if (!token) return;
+      var dashLink = document.getElementById("dashNavLink");
+      if (dashLink) dashLink.style.display = "inline-block";
       try {
         var payload = token.split(".")[1];
         payload = payload.replace(/-/g, "+").replace(/_/g, "/");

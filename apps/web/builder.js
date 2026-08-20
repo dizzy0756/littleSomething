@@ -752,6 +752,12 @@
         }
         setAuthToken(data.token);
         hideAuthModal();
+        if (pendingCreationId) {
+          var pid = pendingCreationId;
+          pendingCreationId = null;
+          openExistingCreation(pid);
+          return;
+        }
       } catch (err) {
         alert("Could not connect to server. Is the backend running?");
         console.error(err);
@@ -1007,10 +1013,20 @@
 
   /* ---------- init ---------- */
 
+  // Set when the builder is opened with ?creation=<id> (from the dashboard's
+  // "Edit content" action) but the user isn't logged in yet. After they log in
+  // we retry loading that existing creation.
+  var pendingCreationId = null;
+
   async function init() {
     var params = new URLSearchParams(window.location.search);
-    var requestedTemplate = params.get("template") || "playful-love-journey";
+    var creationId = params.get("creation");
+    if (creationId) {
+      await openExistingCreation(creationId);
+      return;
+    }
 
+    var requestedTemplate = params.get("template") || "playful-love-journey";
     var template = await loadTemplate(requestedTemplate);
     if (!template) {
       requestedTemplate = "playful-love-journey";
@@ -1026,6 +1042,41 @@
     }
 
     currentTemplate = template;
+    setupEditor(template);
+  }
+
+  // Open an already-saved creation so the customer can edit its content. The
+  // live link renders the creation's data_json, so saving here updates the
+  // shared link immediately — no new payment required.
+  async function openExistingCreation(creationId) {
+    if (!authToken) {
+      pendingCreationId = creationId;
+      showAuthModal();
+      return;
+    }
+    try {
+      var res = await fetch(API_BASE + "/api/creations/" + creationId, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error("Could not load this creation.");
+      var data = await res.json();
+      state.creationId = creationId;
+      state.templateId = data.creation.template_id;
+      state.data = data.creation.data;
+
+      var template = await loadTemplate(state.templateId);
+      if (!template) throw new Error("Unknown template for this creation.");
+
+      currentTemplate = template;
+      setupEditor(template);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Could not open this creation.");
+      window.location.href = "dashboard.html";
+    }
+  }
+
+  function setupEditor(template) {
     buildEditorUI(template);
     hydrateForm(template);
     bindMobilePreview();
@@ -1037,8 +1088,47 @@
     bindGenerateLink();
     bindAdminBypass();
 
+    if (state.creationId) {
+      // Editing an already-paid creation: saving just updates the content, the
+      // live link reflects changes immediately (no new payment).
+      var dl = $("downloadBtn");
+      if (dl) {
+        dl.textContent = "Save changes";
+        dl.onclick = saveChanges;
+      }
+    }
+
     renderPreview();
     saveDraft();
+  }
+
+  // Save an existing creation without going through payment again. Used when
+  // the builder is opened with ?creation=<id> from the dashboard.
+  async function saveChanges() {
+    var dl = $("downloadBtn");
+    var original = dl.textContent;
+    dl.textContent = "Saving...";
+    dl.disabled = true;
+    try {
+      if (!authToken) {
+        pendingCreationId = state.creationId;
+        showAuthModal();
+        dl.textContent = original;
+        dl.disabled = false;
+        return;
+      }
+      var res = await apiCall("PUT", "/api/creations/" + state.creationId, {
+        name: state.data.recipientName || "Untitled",
+        data: state.data,
+      });
+      if (!res.ok) throw new Error("Could not save changes");
+      window.location.href = "dashboard.html?saved=" + encodeURIComponent(state.creationId);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Something went wrong");
+      dl.textContent = original;
+      dl.disabled = false;
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);

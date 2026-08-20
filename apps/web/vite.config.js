@@ -7,6 +7,7 @@ const pages = {
   index: resolve(root, "index.html"),
   builder: resolve(root, "builder.html"),
   checkout: resolve(root, "checkout.html"),
+  dashboard: resolve(root, "dashboard.html"),
   admin: resolve(root, "admin.html"),
   preview: resolve(root, "preview.html"),
   templates: resolve(root, "templates.html"),

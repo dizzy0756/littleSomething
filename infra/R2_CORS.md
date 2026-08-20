@@ -10,8 +10,7 @@ Configure **R2 → your bucket → Settings → CORS** with a policy like:
 [
   {
     "AllowedOrigins": [
-      "https://littlesomething.app",
-      "https://little-something-builder.pages.dev"
+      "https://little-something-web.pages.dev"
     ],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
     "AllowedHeaders": ["*"],
