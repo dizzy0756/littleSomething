@@ -794,6 +794,13 @@
 
   async function bindGenerateLink() {
     $("downloadBtn").addEventListener("click", async function () {
+      // Editing an existing, already-paid creation: save content only (no
+      // payment). The button label is "Save changes" in this state.
+      if (state.creationId) {
+        await saveChanges();
+        return;
+      }
+
       var btn = $("downloadBtn");
       var original = btn.textContent;
       btn.textContent = "Working...";
@@ -1089,13 +1096,11 @@
     bindAdminBypass();
 
     if (state.creationId) {
-      // Editing an already-paid creation: saving just updates the content, the
-      // live link reflects changes immediately (no new payment).
+      // Editing an already-paid creation: the click handler (bindGenerateLink)
+      // branches to saveChanges(), which just PUTs the content — the live link
+      // reflects changes immediately, no new payment.
       var dl = $("downloadBtn");
-      if (dl) {
-        dl.textContent = "Save changes";
-        dl.onclick = saveChanges;
-      }
+      if (dl) dl.textContent = "Save changes";
     }
 
     renderPreview();
