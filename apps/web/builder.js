@@ -718,6 +718,16 @@
     $("authModal").style.display = "none";
   }
 
+  function showVerifyingOverlay() {
+    var ov = $("verifyingOverlay");
+    if (ov) ov.style.display = "flex";
+  }
+
+  function hideVerifyingOverlay() {
+    var ov = $("verifyingOverlay");
+    if (ov) ov.style.display = "none";
+  }
+
   function bindAuthModal() {
     $("authClose").addEventListener("click", hideAuthModal);
     $("authModal").addEventListener("click", function (e) {
@@ -866,7 +876,8 @@
           method: { upi: true },
           theme: { color: "#f3698b" },
           handler: async function (response) {
-            btn.textContent = "Verifying...";
+            btn.disabled = true;
+            showVerifyingOverlay();
             try {
               var verifyRes = await fetch(API_BASE + "/api/payments/verify", {
                 method: "POST",
@@ -879,12 +890,15 @@
               });
               var verifyData = await verifyRes.json();
               if (verifyRes.ok && verifyData.success && verifyData.link) {
+                // Overlay stays up during the redirect to success.html.
                 window.location.href = "/success.html?slug=" + verifyData.link.slug;
               } else {
+                hideVerifyingOverlay();
                 throw new Error(verifyData.error || "Payment verification failed");
               }
             } catch (err) {
               console.error(err);
+              hideVerifyingOverlay();
               alert(err.message || "Something went wrong during verification");
               btn.textContent = original;
               btn.disabled = false;
