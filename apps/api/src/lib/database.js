@@ -105,6 +105,18 @@ async function runMigrations() {
   } catch (err) {
     console.warn("Could not convert payments.amount to INTEGER:", err.message);
   }
+
+  // M5: password reset tokens for the forgot-password flow.
+  const userColumns = await db.query(
+    "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND table_schema = 'public'"
+  );
+  const userColumnNames = userColumns.rows.map((row) => row.column_name);
+  if (!userColumnNames.includes("reset_token")) {
+    await db.query("ALTER TABLE users ADD COLUMN reset_token TEXT");
+  }
+  if (!userColumnNames.includes("reset_token_expires_at")) {
+    await db.query("ALTER TABLE users ADD COLUMN reset_token_expires_at TEXT");
+  }
 }
 
 async function init() {

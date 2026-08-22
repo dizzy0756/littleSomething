@@ -1,59 +1,102 @@
-const nodemailer = require("nodemailer");
-
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = process.env.SMTP_PORT;
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM;
 
-let transporter = null;
+function parseFrom(raw) {
+  if (!raw) return null;
+  const m = raw.match(/^(?:"?([^"<]+?)"?\s*)?<(.+?)>\s*$/);
+  if (m) return { name: (m[1] || "").trim(), email: m[2].trim() };
+  return { name: "", email: raw.trim() };
+}
 
-function getTransporter() {
-  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASSWORD) {
-    return null;
+const sender = parseFrom(EMAIL_FROM);
+
+async function sendViaBrevo(payload) {
+  if (!BREVO_API_KEY || !sender || !sender.email) {
+    return false;
   }
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: parseInt(SMTP_PORT, 10),
-      secure: SMTP_PORT === "465",
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASSWORD,
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json",
       },
+      body: JSON.stringify(payload),
     });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("Brevo email send failed:", res.status, body);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Failed to send email via Brevo:", err);
+    return false;
   }
-  return transporter;
 }
 
 async function sendPaymentConfirmation(userEmail, amount, linkUrl, expiresAt) {
-  const t = getTransporter();
-  if (!t) {
-    console.warn("SMTP not configured — skipping payment confirmation email to", userEmail);
+  if (!BREVO_API_KEY || !sender || !sender.email) {
+    console.warn("BREVO_API_KEY / EMAIL_FROM not configured — skipping payment confirmation email to", userEmail);
     return;
   }
 
-  try {
-    await t.sendMail({
-      from: EMAIL_FROM || SMTP_USER,
-      to: userEmail,
-      subject: "Your LittleSomething surprise is ready ♥",
-      text:
-        "Hi there!\n\n" +
-        "Your LittleSomething has been created and is waiting to be shared.\n\n" +
-        "Private link: " + linkUrl + "\n" +
-        "This link will expire on " + new Date(expiresAt).toLocaleDateString() + ".\n\n" +
-        "Made with ♥",
-      html:
-        "<p>Hi there!</p>" +
-        "<p>Your <strong>LittleSomething</strong> has been created and is waiting to be shared.</p>" +
-        "<p><a href=\"" + linkUrl + "\">Open your surprise</a></p>" +
-        "<p><small>This link will expire on " + new Date(expiresAt).toLocaleDateString() + ".</small></p>" +
-        "<p>Made with ♥</p>",
-    });
-  } catch (err) {
-    console.error("Failed to send payment confirmation email:", err);
-  }
+  const subject = "Your LittleSomething surprise is ready ♥";
+  const textContent =
+    "Hi there!\n\n" +
+    "Your LittleSomething has been created and is waiting to be shared.\n\n" +
+    "Private link: " + linkUrl + "\n" +
+    "This link will expire on " + new Date(expiresAt).toLocaleDateString() + ".\n\n" +
+    "Made with ♥";
+  const htmlContent =
+    "<p>Hi there!</p>" +
+    "<p>Your <strong>LittleSomething</strong> has been created and is waiting to be shared.</p>" +
+    "<p><a href=\"" + linkUrl + "\">Open your surprise</a></p>" +
+    "<p><small>This link will expire on " + new Date(expiresAt).toLocaleDateString() + ".</small></p>" +
+    "<p>Made with ♥</p>";
+
+  const ok = await sendViaBrevo({
+    sender,
+    to: [{ email: userEmail }],
+    subject,
+    textContent,
+    htmlContent,
+  });
+
+  if (ok) console.log("Payment confirmation email sent to", userEmail);
 }
 
-module.exports = { sendPaymentConfirmation };
+async function sendPasswordReset(userEmail, resetUrl) {
+  if (!BREVO_API_KEY || !sender || !sender.email) {
+    console.warn("BREVO_API_KEY / EMAIL_FROM not configured — skipping password reset email to", userEmail);
+    return false;
+  }
+
+  const subject = "Reset your LittleSomething password";
+  const textContent =
+    "Hi,\n\n" +
+    "We received a request to reset your LittleSomething password.\n\n" +
+    "Reset your password: " + resetUrl + "\n\n" +
+    "This link expires in 1 hour. If you didn't request this, you can safely ignore this email.\n\n" +
+    "Made with ♥";
+  const htmlContent =
+    "<p>Hi,</p>" +
+    "<p>We received a request to reset your LittleSomething password.</p>" +
+    "<p><a href=\"" + resetUrl + "\">Reset your password</a></p>" +
+    "<p><small>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</small></p>" +
+    "<p>Made with ♥</p>";
+
+  const ok = await sendViaBrevo({
+    sender,
+    to: [{ email: userEmail }],
+    subject,
+    textContent,
+    htmlContent,
+  });
+
+  if (ok) console.log("Password reset email sent to", userEmail);
+  return ok;
+}
+
+module.exports = { sendPaymentConfirmation, sendPasswordReset };

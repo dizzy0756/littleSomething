@@ -712,6 +712,11 @@
     $("authNameField").style.display = authMode === "register" ? "flex" : "none";
     $("authModalTitle").textContent = authMode === "login" ? "Login" : "Register";
     $("authToggle").textContent = authMode === "login" ? "Need an account? Register" : "Have an account? Login";
+    $("forgotPasswordLink").style.display = authMode === "login" ? "block" : "none";
+    var msg = $("authMsg");
+    msg.style.display = "none";
+    msg.textContent = "";
+    msg.className = "auth-msg";
   }
 
   function hideAuthModal() {
@@ -737,6 +742,33 @@
       e.preventDefault();
       authMode = authMode === "login" ? "register" : "login";
       showAuthModal();
+    });
+    $("forgotPasswordLink").addEventListener("click", async function (e) {
+      e.preventDefault();
+      var msg = $("authMsg");
+      var email = $("authEmail").value.trim();
+      if (!email) {
+        msg.textContent = "Enter your email above and we'll send a reset link.";
+        msg.className = "auth-msg";
+        msg.style.display = "block";
+        $("authEmail").focus();
+        return;
+      }
+      try {
+        var res = await fetch(API_BASE + "/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email }),
+        });
+        var data = await res.json().catch(function () { return {}; });
+        msg.textContent = data.message || "If that email exists, a reset link is on its way.";
+        msg.className = "auth-msg ok";
+        msg.style.display = "block";
+      } catch (err) {
+        msg.textContent = "Could not connect to the server. Please try again.";
+        msg.className = "auth-msg";
+        msg.style.display = "block";
+      }
     });
     $("authForm").addEventListener("submit", async function (e) {
       e.preventDefault();

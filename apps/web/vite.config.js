@@ -18,6 +18,7 @@ const pages = {
   refund: resolve(root, "refund.html"),
   "payment-failed": resolve(root, "payment-failed.html"),
   success: resolve(root, "success.html"),
+  "reset-password": resolve(root, "reset-password.html"),
 };
 
 export default defineConfig({

@@ -311,6 +311,16 @@ input[type="file"]{font-size:0.8rem;}
 }
   .modal h2{ margin-bottom:0.8rem; }
   .modal .field{ margin:0.6rem 0; }
+  .auth-link{
+    display:block; text-align:center; margin-top:0.7rem; font-size:0.85rem;
+    color:var(--accent, #f3698b); text-decoration:none; cursor:pointer;
+  }
+  .auth-link:hover{ text-decoration:underline; }
+  .auth-msg{
+    margin-top:0.8rem; padding:0.6rem 0.7rem; border-radius:10px; font-size:0.85rem;
+    text-align:center; background:#fff3f6; color:#a23b5c;
+  }
+  .auth-msg.ok{ background:#eafaf0; color:#1f7a44; }
 
 /* -------- verifying overlay (payment) -------- */
 .verifying-overlay{ background:rgba(20,10,20,0.80); z-index:300; }
